@@ -75,6 +75,7 @@ alias EXPORT="python "$NETWISE_PRODUCTION_EXPORTER_DIR"/Export.py"
 alias nom="python34 "$UTILSCRIPT"/nom.py"
 alias combine-files="python "$UTILSCRIPT"/CombineFiles.py"
 alias streamunzip="python "$UTILSCRIPT"/StreamUnzip.py"
+alias remove-hits="python "$UTILSCRIPT"/RemoveGoodHits.py"
 
 # use nano as default editor
 export VISUAL=nano
