@@ -34,12 +34,22 @@ def get_good_hit_ids(file_path,csv_settings):
 
 if __name__ == '__main__':
 
+    records = dict()
+
     good_hits = get_good_hit_ids(args.good_hits_file_path,csv_settings)
+
+    records['good'] = len(good_hits)
 
     with open(args.input_file_path,'rb') as ifile, open(args.output_file_path,'wb') as ofile:
         icsv = csv.DictReader(ifile,**csv_settings)
         ocsv = csv.DictWriter(ofile,icsv.fieldnames,**csv_settings)
         ocsv.writeheader()
         for line in icsv:
+            records['input'] = records.get('input',0) + 1
             if int(line[args.id_column].strip()) not in good_hits:
+                records['output'] = records.get('output',0) + 1
                 ocsv.writerow(line)
+
+
+    for key, value in records.iteritems():
+        print key + ': ' + str(value)
