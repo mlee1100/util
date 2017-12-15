@@ -51,5 +51,7 @@ if __name__ == '__main__':
                 ocsv.writerow(line)
 
 
+    records['removed'] = records['input'] - records['output']
+    
     for key, value in records.iteritems():
         print key + ': ' + str(value)
