@@ -5,13 +5,17 @@ if [ -f /etc/bashrc ]; then
 	. /etc/bashrc
 fi
 
+# Completion adds
+complete -f '*.*' gzip
+complete -f '*.*' aws
+
 USER_HOME="/home/ec2-user"
 
 # User specific aliases and functions
 export UTILDIRNAME="util"
 export UTILDIR=$USER_HOME"/"$UTILDIRNAME
 export UTILSCRIPT=$UTILDIR"/script"
-export NETWISE_PRODUCTION_EXPORTER_DIR=$USER_HOME"/workspace/netwise_production_exporters"
+export NETWISE_PRODUCTION_EXPORTER_DIR=$USER_HOME"/netwise_production_exporters"
 export NETWISE_PRODUCTION_EXPORTER=$NETWISE_PRODUCTION_EXPORTER_DIR"/Export.py"
 export S3DIR=$USER_HOME"/s3"
 export REDIS="/usr/local/bin/"
