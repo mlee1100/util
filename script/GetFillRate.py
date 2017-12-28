@@ -16,14 +16,17 @@ parser.add_argument('-e','--escapechar',required=False, type=str, default=None, 
 parser.add_argument('-b','--doublequote', required=False, type=int, default=1, help='set escaping of quote character to the quote character itself')
 parser.add_argument('-z','--excludezeros',required=False, type=int, default=1, help='count zeros as not filled')
 parser.add_argument('-d','--distinct',required=False, type=int, default=0, help='get distinct counts for each field')
+parser.add_argument('-n','--nullvalues',required=False, type=str, default='', help='which values ot count as not filled')
 args = parser.parse_args()
 
 start = time.time()
 
 exec('args.quoting = csv.{quoting}'.format(quoting=args.quoting))
 use_double_quote = (False if args.escapechar and not (True if args.doublequote else False) else True)
-
-null_values = set(['','0',] if args.excludezeros else ['',])
+args.nullvalues = args.nullvalues.split(',')
+if args.excludezeros:
+  args.nullvalues.append('0')
+null_values = set(args.nullvalues)
 
 def convert_time(seconds):
 
