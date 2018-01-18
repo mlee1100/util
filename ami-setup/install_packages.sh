@@ -7,6 +7,7 @@ sudo yum install openssl-devel -y
 sudo yum install gcc -y
 sudo yum install python27-devel -y
 sudo yum install libxslt-devel -y
+sudo yum install lftp -y
 sudo pip install MySQL-python
 sudo pip install futures
 sudo pip install fuzzywuzzy
@@ -39,3 +40,4 @@ sudo pip install stop-words
 sudo pip install scrapy-random-useragent
 sudo pip install jira
 sudo pip install smart_open
+sudo pip install paramiko
