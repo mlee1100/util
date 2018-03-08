@@ -75,7 +75,8 @@ if __name__ == '__main__':
   issues = 0
 
   with open(args.filepath,'rU') as ifile:
-    icsv = csv.reader(ifile,delimiter=args.delimiter,quoting=args.quoting,escapechar=args.escapechar,doublequote=use_double_quote)
+    icsv = csv.reader((line.replace('\0','') for line in ifile),delimiter=args.delimiter,quoting=args.quoting,escapechar=args.escapechar,doublequote=use_double_quote)
+    # icsv = csv.reader(ifile,delimiter=args.delimiter,quoting=args.quoting,escapechar=args.escapechar,doublequote=use_double_quote)
     header = icsv.next()
 
     count_list = [0 for v in header]
@@ -93,15 +94,20 @@ if __name__ == '__main__':
           # sys.exit(1)
 
     else:
-      for line in icsv:
-        lines += 1
-        try:
-          count_list = map(add,count_list,return_int_list(line))
-        except:
-          print line
-          issues += 1
-          traceback.print_exc()
-          # sys.exit(1)
+      try:
+        for line in icsv:
+          lines += 1
+          try:
+            count_list = map(add,count_list,return_int_list(line))
+          except:
+            print line
+            issues += 1
+            traceback.print_exc()
+            raise
+            # sys.exit(1)
+      except:
+        print lines
+        raise
 
   output_values = ([len(s) for s in count_set] if args.distinct else count_list)
   field_dict = [(field,value) for field, value in zip(header,output_values)]

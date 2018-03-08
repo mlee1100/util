@@ -41,3 +41,6 @@ sudo pip install scrapy-random-useragent
 sudo pip install jira
 sudo pip install smart_open
 sudo pip install paramiko
+sudo pip install py2casefold
+sudo yum install ftp
+sudo pip install xlsx2csv
