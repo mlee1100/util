@@ -1,4 +1,4 @@
-SCRIPT=$(readlink -f "$0")
+SCRIPT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 SOURCE=$SCRIPT"/source"
 cd $SOURCE
 tar -zxvf sshpass-1.06.tar.gz

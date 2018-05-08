@@ -62,7 +62,11 @@ def return_int_list(inlist):
 def append_to_set(inset,value):
 
   if value not in null_values:
-    inset.update([value,])
+    if value not in inset:
+      inset.add(value)
+    else:
+      # print value
+      pass
 
   return inset
 
@@ -99,7 +103,9 @@ if __name__ == '__main__':
           lines += 1
           try:
             count_list = map(add,count_list,return_int_list(line))
+            previous_line = line
           except:
+            print previous_line
             print line
             issues += 1
             traceback.print_exc()

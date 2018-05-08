@@ -44,3 +44,4 @@ sudo pip install paramiko
 sudo pip install py2casefold
 sudo yum install ftp
 sudo pip install xlsx2csv
+sudo pip install pandas
