@@ -42,6 +42,9 @@ sudo pip install jira
 sudo pip install smart_open
 sudo pip install paramiko
 sudo pip install py2casefold
-sudo yum install ftp
+sudo yum install ftp -y
 sudo pip install xlsx2csv
 sudo pip install pandas
+sudo pip install xlwt
+sudo pip install flask
+sudo pip install virtualenvwrapper
