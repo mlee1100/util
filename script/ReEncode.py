@@ -3,6 +3,7 @@ import codecs
 from chardet.universaldetector import UniversalDetector
 import argparse
 import os
+from tqdm import tqdm
 
 parser = argparse.ArgumentParser(description='Generate Fillrates for flat file')
 parser.add_argument('-f','--filepath',required=True, type=str, help='path of file to get fill rate on')
@@ -17,10 +18,14 @@ args.filepath = os.path.abspath(args.filepath)
 def detect_encoding(file_path):
     detector = UniversalDetector()
     try:
-        for line in file(file_path, 'rb'):
-            detector.feed(line)
-            if detector.done:
-                break
+        with tqdm(total=get_file_size(file_path)) as t:
+            for i, line in enumerate(file(file_path, 'rb')):
+                detector.feed(line)
+                t.update(len(line))
+                if detector.done:
+                    break
+                if i >= 1.5 * 1000 * 1000:
+                    break
 
         detector_results = detector.close()
 
@@ -32,11 +37,12 @@ def detect_encoding(file_path):
     except:
         raise
 
-    if detector_results['confidence'] == 1:
-        return detector_results['encoding']
-    else:
-        print detector_results
-        raise Exception('could not detect encoding of {} confidently'.format(file_path))
+    print detector_results
+    return detector_results['encoding']
+
+
+def get_file_size(file_path):
+    return os.path.getsize(file_path)
 
 
 if __name__ == '__main__':
@@ -46,11 +52,13 @@ if __name__ == '__main__':
         args.output_path = os.path.abspath(args.output_path)
         if args.filepath == args.output_path:
             raise Exception('input and output paths cannot match')
-        with codecs.open(args.filepath, 'rb', encoding) as ifile, codecs.open(args.output_path, 'wb', args.encoding, args.action) as ofile:
-            try:
-                for line in ifile:
-                    ofile.write(line)
+        with tqdm(total=get_file_size(args.filepath)) as t:
+            with codecs.open(args.filepath, 'rb', encoding) as ifile, codecs.open(args.output_path, 'wb', args.encoding, args.action) as ofile:
+                try:
+                    for line in ifile:
+                        ofile.write(line)
+                        t.update(len(line))
 
-            except:
-                print line
-                raise
+                except:
+                    print line
+                    raise
