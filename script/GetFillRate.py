@@ -6,6 +6,8 @@ import math
 import time
 import sys
 from operator import add
+from tqdm import tqdm
+import os
 
 
 parser = argparse.ArgumentParser(description='Generate Fillrates for flat file')
@@ -77,8 +79,9 @@ if __name__ == '__main__':
   
   lines = 0
   issues = 0
+  tell = 0
 
-  with open(args.filepath,'rU') as ifile:
+  with open(args.filepath,'rU') as ifile, tqdm(total=os.path.getsize(args.filepath)) as t:
     icsv = csv.reader((line.replace('\0','') for line in ifile),delimiter=args.delimiter,quoting=args.quoting,escapechar=args.escapechar,doublequote=use_double_quote)
     # icsv = csv.reader(ifile,delimiter=args.delimiter,quoting=args.quoting,escapechar=args.escapechar,doublequote=use_double_quote)
     header = icsv.next()
@@ -89,6 +92,8 @@ if __name__ == '__main__':
     if args.distinct:
       for line in icsv:
         lines += 1
+        t.update(ifile.tell()-tell)
+        tell = ifile.tell()
         try:
           count_set = [append_to_set(s,line[i].lower()) for i, s in enumerate(count_set)]
         except:
@@ -101,6 +106,8 @@ if __name__ == '__main__':
       try:
         for line in icsv:
           lines += 1
+          t.update(ifile.tell()-tell)
+          tell = ifile.tell()
           try:
             count_list = map(add,count_list,return_int_list(line))
             previous_line = line
