@@ -17,15 +17,24 @@ args.filepath = os.path.abspath(args.filepath)
 
 def detect_encoding(file_path):
     detector = UniversalDetector()
+    increments = 10*1000
+    counter = 0
+    encoding = 'ascii'
     try:
         with tqdm(total=get_file_size(file_path)) as t:
-            for i, line in enumerate(file(file_path, 'rb')):
+            for line in file(file_path, 'rb'):
                 detector.feed(line)
+                counter += 1
                 t.update(len(line))
                 if detector.done:
                     break
-                if i >= 1.5 * 1000 * 1000:
-                    break
+                if counter == increments:
+                    counter = 0
+                    detector_results = detector.close()
+                    if detector_results['encoding'] != encoding:
+                        break
+                    else:
+                        detector.reset()
 
         detector_results = detector.close()
 
