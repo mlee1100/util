@@ -46,7 +46,6 @@ def detect_encoding(file_path):
     except:
         raise
 
-    print detector_results
     return detector_results['encoding']
 
 
