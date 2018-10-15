@@ -182,17 +182,34 @@ class Processor(object):
                     assert column in self.agg_header, '{}: {} not in agg_header'.format(file_name, column)
             assert len(self.get_file_header(os.path.join(self.directory, file_name))) == len(file_header), '{}: column length different'.format(file_name)
 
+    def test_fn(self):
+        l = dict(name='mike', email_1=' ', email_2='', email_3='mlee1100@gmail.com', email_4='michael.lee@netwisedata.com', email_5='', email_6=' ', email_7='mlee1100@gmail.com')
+        consolidated = self.consolidate_emails(l)
+        assert consolidated == dict(name='mike', email_1='mlee1100@gmail.com', email_2='michael.lee@netwisedata.com', email_3=None, email_4=None, email_5=None, email_6=None, email_7=None, email_8=None)
+
     def get_file_header(self, file_path):
         with open(file_path, 'rb') as ifile:
             icsv = csv.DictReader(ifile, **self.isettings)
             return icsv.fieldnames
 
+    def _dedup_list(self, l):
+        found = set()
+        ol = list()
+        for item in l:
+            if item not in found:
+                ol.append(item)
+                found.add(item)
+
+        return ol
+
     def consolidate_emails(self, line):
-        emails = set([line.get('email_{}'.format(i+1), None) for i in self.input_email_iterable if line.get('email_{}'.format(i+1), None)])
-        for i, email in enumerate(emails):
-            if i >= self.output_emails:
-                break
-            line['email_{}'.format(i+1)] = email.strip().lower()
+        emails = self._dedup_list([line.get('email_{}'.format(i+1), None) for i in self.input_email_iterable if line.get('email_{}'.format(i+1), '').strip()])
+        emails_count = len(emails)
+        for i in range(self.output_emails):
+            if i < emails_count:
+                line['email_{}'.format(i+1)] = emails[i].strip().lower()
+            else:
+                line['email_{}'.format(i+1)] = None
         return line
 
     def process(self, file_name):
@@ -209,15 +226,22 @@ class Processor(object):
                 for line in icsv:
                     line = self.consolidate_emails(line)
                     ocsv.writerow(line)
+                    # break
         except KeyboardInterrupt:
             raise KeyboardInterruptError()
         except:
             traceback.print_exc()
             raise
+        else:
+            print '{} COMPLETED'.format(file_name)
+
+    def ordered_files(self):
+        return [os.path.split(f)[1] for f in sorted([os.path.join(self.directory, n) for n in self.header_map.keys()], key=os.path.getsize, reverse=True)]
 
 def process(file_name):
     p = Processor()
     p.process(file_name)
+    return file_name
 
 
 class KeyboardInterruptError(Exception): pass
@@ -226,9 +250,10 @@ class KeyboardInterruptError(Exception): pass
 if __name__ == '__main__':
     proc = Processor()
     proc.test_headers()
+    proc.test_fn()
     pool = multiprocessing.Pool(multiprocessing.cpu_count())
     try:
-        res = pool.map(process, proc.header_map.keys())
+        res = pool.map_async(process, proc.ordered_files(), 1)
     except KeyboardInterrupt:
         pool.terminate()
     else:

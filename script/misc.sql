@@ -327,8 +327,8 @@ primary key (id)
 ) engine=innodb collate=utf8_unicode_ci;
 
 
-load data local infile 'ALC_Aggregated_utf8.psv'
-into table `alc_consumer_segments_2018_09_05`
+load data local infile 'ALC_Aggregated.psv'
+into table `alc_consumer_segments_2018_10_12`
 fields terminated by '|' escaped by '\\'
 lines terminated by '\r\n'
 ignore 1 lines
@@ -601,6 +601,7 @@ email_8 = NULLIF(@email_8, ''),
 `seasonal_new_years_shoppers` = COALESCE(NULLIF(@seasonal_new_years_shoppers, ''), 0);
 
 
-alter table alc_consumer_segments_2018_09_05
+alter table alc_consumer_segments_2018_10_12
 add index (email_1)
 ;
+

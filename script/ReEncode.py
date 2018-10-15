@@ -1,6 +1,6 @@
 
 import codecs
-from chardet.universaldetector import UniversalDetector
+import chardet
 import argparse
 import os
 from tqdm import tqdm
@@ -16,30 +16,16 @@ args.filepath = os.path.abspath(args.filepath)
 
 
 def detect_encoding(file_path):
-    detector = UniversalDetector()
-    increments = 10*1000
-    counter = 0
-    encoding = 'ascii'
+    encoding = chardet.detect('a')['encoding']
     try:
         with tqdm(total=get_file_size(file_path)) as t:
-            for line in file(file_path, 'rb'):
-                detector.feed(line)
-                counter += 1
-                t.update(len(line))
-                if detector.done:
+            for chunk in read_in_chunks(file(file_path, 'rb')):
+                detector_results = chardet.detect(chunk)
+                t.update(len(chunk))
+                if detector_results['encoding'] != encoding:
                     break
-                if counter == increments:
-                    counter = 0
-                    detector_results = detector.close()
-                    if detector_results['encoding'] != encoding:
-                        break
-                    else:
-                        detector.reset()
-
-        detector_results = detector.close()
 
     except KeyboardInterrupt:
-        detector_results = detector.close()
         print detector_results
         raise
 
@@ -52,6 +38,15 @@ def detect_encoding(file_path):
 def get_file_size(file_path):
     return os.path.getsize(file_path)
 
+def read_in_chunks(file_object, chunk_size=4*1024**2):
+    """Lazy function (generator) to read a file piece by piece.
+    Default chunk size: 1k."""
+    while True:
+        data = file_object.read(chunk_size)
+        if not data:
+            break
+        yield data
+
 
 if __name__ == '__main__':
     encoding = detect_encoding(args.filepath)
@@ -63,10 +58,10 @@ if __name__ == '__main__':
         with tqdm(total=get_file_size(args.filepath)) as t:
             with codecs.open(args.filepath, 'rb', encoding) as ifile, codecs.open(args.output_path, 'wb', args.encoding, args.action) as ofile:
                 try:
-                    for line in ifile:
-                        ofile.write(line)
-                        t.update(len(line))
+                    for chunk in read_in_chunks(ifile):
+                        ofile.write(chunk)
+                        t.update(len(chunk))
 
                 except:
-                    print line
+                    print chunk
                     raise
