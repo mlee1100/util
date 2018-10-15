@@ -19,7 +19,7 @@ def detect_encoding(file_path):
     encoding = chardet.detect('a')['encoding']
     try:
         with tqdm(total=get_file_size(file_path)) as t:
-            for chunk in read_in_chunks(file(file_path, 'rb')):
+            for chunk in read_in_chunks(file(file_path, 'rb'), 1024**2):
                 detector_results = chardet.detect(chunk)
                 t.update(len(chunk))
                 if detector_results['encoding'] != encoding:
