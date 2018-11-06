@@ -48,3 +48,4 @@ sudo pip install pandas
 sudo pip install xlwt
 sudo pip install flask
 sudo pip install virtualenvwrapper
+sudo pip install tqdm
