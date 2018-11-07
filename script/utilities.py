@@ -1,5 +1,6 @@
 import urlparse
 import os
+import csv
 
 '''
 import utilities
@@ -164,9 +165,11 @@ def Slice_test():
     counter = 0
     with open(output, 'wb') as ofile:
         for location in slicer.yield_file_location(10):
-            for line in slicer.read_chunk_lines(location):
+            icsv = csv.reader(slicer.read_chunk_lines(location), delimiter=',')
+            for line in icsv:
                 counter += 1
-                ofile.write(line)
+                print line
+                # ofile.write(line)
     print counter
 
 

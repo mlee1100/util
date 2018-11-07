@@ -19,6 +19,7 @@ parser.add_argument('-b','--doublequote', required=False, type=int, default=1, h
 parser.add_argument('-z','--excludezeros',required=False, type=int, default=1, help='count zeros as not filled')
 parser.add_argument('-d','--distinct',required=False, type=int, default=0, help='get distinct counts for each field')
 parser.add_argument('-n','--nullvalues',required=False, type=str, default='', help='which values ot count as not filled')
+parser.add_argument('-s','--stop',required=False, type=int, default=None, help='number of lines to scan')
 args = parser.parse_args()
 
 start = time.time()
@@ -90,7 +91,9 @@ if __name__ == '__main__':
     count_set = [set() for v in header]
 
     if args.distinct:
-      for line in icsv:
+      for i, line in enumerate(icsv):
+        if i == args.stop:
+          break
         lines += 1
         t.update(ifile.tell()-tell)
         tell = ifile.tell()
@@ -104,7 +107,9 @@ if __name__ == '__main__':
 
     else:
       try:
-        for line in icsv:
+        for i, line in enumerate(icsv):
+          if i == args.stop:
+            break
           lines += 1
           t.update(ifile.tell()-tell)
           tell = ifile.tell()

@@ -1342,3 +1342,27 @@ with MySQLdb.connect(host = os.getenv('SQL_CONTACTSV2PROD_HOST'), user = os.gete
 
 for v in r:
     print type((v))
+
+
+
+
+
+
+import csv
+import json
+f = 'Risk_2018_10_17_sample.psv'
+o = 'Risk_2018_10_17.jl'
+isettings = dict(
+    delimiter = '|'
+    )
+
+with open(f, 'rb') as ifile, open(o, 'wb') as ofile:
+    icsv = csv.DictReader(ifile, **isettings)
+    for i, line in enumerate(icsv):
+        if i % 100 == 0:
+            before = 'g'
+        else:
+            before = ''
+        ofile.write(before + json.dumps(line) + '\n')
+
+

@@ -327,11 +327,10 @@ primary key (id)
 ) engine=innodb collate=utf8_unicode_ci;
 
 
-load data local infile 'ALC_Aggregated.psv'
+load data local infile 'ALC_Aggregated_20181015.psv'
 into table `alc_consumer_segments_2018_10_12`
 fields terminated by '|' escaped by '\\'
 lines terminated by '\r\n'
-ignore 1 lines
 (@person_id,
 first_name,
 middle_initial,

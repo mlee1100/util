@@ -29,7 +29,6 @@ sudo pip install psutil
 sudo pip install python-gnupg
 sudo yum install python34 -y
 sudo yum install python34-devel -y
-sudo pip-3.4 install aiogremlin
 sudo yum install php -y
 sudo yum install python-dev python-pip libxml2-dev libxslt1-dev zlib1g-dev libffi-dev libssl-dev libxml2-dev libxslt1-dev lxml python-devel libxml2-devel libxslt-devel pyOpenSSL gcc libffi-devel -y
 sudo pip install scrapy
