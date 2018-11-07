@@ -11,6 +11,9 @@ complete -f '*.*' aws
 
 USER_HOME="/home/ec2-user"
 
+# do not write pyc files when executing python
+export PYTHONDONTWRITEBYTECODE=1
+
 # User specific aliases and functions
 export UTILDIRNAME="util"
 export UTILDIR=$USER_HOME"/"$UTILDIRNAME
@@ -30,8 +33,11 @@ USER_HOME="/home/ec2-user"
 if [ "$HOSTNAME" == "ip-172-31-7-152" ]; then
   export RISKREPO=$USER_HOME"/nwd_risk"
 else
-  export RISKREPO=$USER_HOME"/workspace/nwd_risk"
+  export RISKREPO=$USER_HOME"/nwd_risk"
 fi
+
+export EXPORT_LOG_DIR=$USER_HOME"/netwise_export_executables/netwise_export_manager/log/"
+export EXPORT_EXE_DIR=$USER_HOME"/netwise_export_executables/"
 
 export RISK_DROPOFF=$RISKREPO"/export"
 export RISKPROPERTIESDIR=$RISKREPO"/properties/"
@@ -41,6 +47,7 @@ export RISKVERIFICATIONRETURNDIR=$RISKREPO"/sftp_temp_return_location/"
 export RISKLOGDIR=$RISKREPO"/log/"
 export RISKSFTPDIR="/sftp/"
 export RISKSCRIPTDIR=$RISKREPO"/script/"
+export RISKSTAGING=$RISKSCRIPTDIR"/staging/"
 export RISKSFTPLOGDIR="/var/log/"
 export RISKREPORTDIR=$RISKSFTPDIR"reports/"
 export RISKVBANKDIR=$RISKSFTPDIR"lamanna/pickup/"
@@ -71,7 +78,9 @@ alias cm="dot-rm && ds-rm && pyc-rm;"
 alias sample="python "$UTILSCRIPT"/Sampler.py"
 alias tablesample="python "$UTILSCRIPT"/RandomSampleExport.py"
 alias fillrate="python "$UTILSCRIPT"/GetFillRate.py"
-alias reformat="python "$UTILSCRIPT"/FormatConvert2.py"
+alias fillrate-multi="python "$UTILSCRIPT"/GetFillrateMulti.py"
+alias reformat="python "$UTILSCRIPT"/FormatConvert.py"
+alias multireformat="python "$UTILSCRIPT"/FormatConvertMulti.py"
 alias email="python "$UTILSCRIPT"/SendEmail.py"
 alias dedup="python "$UTILSCRIPT"/Dedup.py"
 alias scriptkill="python "$UTILSCRIPT"/KillScript.py"
@@ -80,6 +89,8 @@ alias nom="python34 "$UTILSCRIPT"/nom.py"
 alias combine-files="python "$UTILSCRIPT"/CombineFiles.py"
 alias streamunzip="python "$UTILSCRIPT"/StreamUnzip.py"
 alias remove-hits="python "$UTILSCRIPT"/RemoveGoodHits.py"
+alias re-encode="python "$UTILSCRIPT"/ReEncode.py"
+alias memory-print="python "$UTILSCRIPT"/MemoryPrint.py"
 
 # use nano as default editor
 export VISUAL=nano
@@ -197,6 +208,7 @@ alias sftp-infogroup-sapphire="sshpass -p '"$SFTP_INFOGROUP_SAPPHIRE_PASSWORD"' 
 alias ftp-infogroup-mfg='lftp -e "set ssl:verify-certificate false" -u '$FTP_INFOGROUP_MFG_USER','$FTP_INFOGROUP_MFG_PASSWORD' '$FTP_INFOGROUP_MFG_HOST
 alias ftp-alc='lftp -e "set ssl:verify-certificate false" -u '$FTP_ALC_USER','$FTP_ALC_PASSWORD' '$FTP_ALC_HOST
 alias ftp-webbula='lftp -e "set ssl:verify-certificate false" -u '$FTP_WEBBULA_USER','$FTP_WEBBULA_PASSWORD' '$FTP_WEBBULA_HOST
+alias ftp-ktf='lftp -e "set ssl:verify-certificate false" -u '$FTP_KTF_USER','$FTP_KTF_PASSWORD' '$FTP_KTF_HOST
 alias sftp-netprospex="sshpass -p '"$SFTP_NETPROSPEX_PASSWORD"' sftp -o StrictHostKeyChecking=no -o PubkeyAuthentication=no "$SFTP_NETPROSPEX_USER"@"$SFTP_NETPROSPEX_HOST":"$SFTP_NETPROSPEX_DROPOFFDIR
 
 # sql login aliases
@@ -213,3 +225,5 @@ alias sql-mfg="mysql -u"$SQL_MFG_USER" -p"$SQL_MFG_PASSWORD" -h"$SQL_MFG_HOST" -
 alias sql-linkedin="mysql -u"$SQL_LINKEDIN_USER" -p"$SQL_LINKEDIN_PASSWORD" -h"$SQL_LINKEDIN_HOST" -A"
 alias sql-crawler-dev="mysql -u"$SQL_CRAWLER_DEV_USER" -p"$SQL_CRAWLER_DEV_PASSWORD" -h"$SQL_CRAWLER_DEV_HOST" -A"
 alias sql-reference="mysql -u"$SQL_REFERENCE_USER" -p"$SQL_REFERENCE_PASSWORD" -h"$SQL_REFERENCE_HOST" -A"
+alias sql-b2bemails="mysql -u"$SQL_B2BEMAILS_USER" -p"$SQL_B2BEMAILS_PASSWORD" -h"$SQL_B2BEMAILS_HOST" -A"
+alias sql-consumer="mysql -u"$SQL_CONSUMER_USER" -p"$SQL_CONSUMER_PASSWORD" -h"$SQL_CONSUMER_HOST" -A"
