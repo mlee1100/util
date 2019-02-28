@@ -1,4 +1,5 @@
 #!/bin/sh
+sudo yum install python-pip -y
 sudo yum install mysql -y
 sudo yum install python-devel -y
 sudo yum install mysql-devel -y
