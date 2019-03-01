@@ -40,6 +40,9 @@ class JsonScheme(object):
         elif d is None:
             result[path] = None
 
+        # elif isinstance(d, basestring):
+        #     result[path] = ''
+
         else:
             result[path] = type(d)()
 
@@ -48,12 +51,12 @@ class JsonScheme(object):
     def add(self, d):
         for path, end_type in self._recursive_add(d).items():
             if path in self.scheme:
-                if self.scheme[path] != end_type and self.scheme[path] is not None and end_type is not None:
-                    print 'path {} has multiple types: {}, {}'.format(path, self.scheme[path], end_type)
-                if end_type is not None:
-                    self.scheme[path] = end_type
+                if type(self.scheme[path]) != type(end_type) and self.scheme[path] is not None and end_type is not None:
+                    print 'path {} has multiple types: {}, {}'.format(path, type(self.scheme[path]), type(end_type))
+                if self.scheme[path] is None and end_type is not None:
+                    self.scheme[path] = self._recursive_get_from_path(d, path)
                     continue
-            self.scheme[path] = end_type
+            self.scheme[path] = self._recursive_get_from_path(d, path)
 
     def display(self):
         for path, end_type in sorted(self.scheme.items(), key=lambda k: (len(k[0]), k[0])):
@@ -62,7 +65,10 @@ class JsonScheme(object):
     def _recursive_get_from_path(self, item, path):
         for elem in path:
             item = item[elem]
-        return item
+        if isinstance(item, basestring):
+            return item[:100]
+        else:
+            return item
 
     def _recursive_exists_from_path(self, item, path):
         try:
@@ -75,13 +81,20 @@ class JsonScheme(object):
         plen = len(path)
         self._recursive_get_from_path(item, path[:plen-1])[path[-1]] = value
 
-
-    def consolidate(self):
+    def _trim_conflicts(self):
         for path, end_type in dict(self.scheme).items():
+            possible_conflicts = {tuple(p[:len(path)]): (p, self.scheme[p]) for p in self.scheme.keys() if path != p}
             if end_type is None:
-                if path in [tuple(p[:len(path)]) for p in self.scheme if tuple(p[:len(path)]) != p]:
+                if path in possible_conflicts:
+                    self.scheme.pop(path)
+            else:
+                if path in possible_conflicts:
+                    print 'conflict: {} with {}'.format((path, end_type), possible_conflicts[path])
                     self.scheme.pop(path)
 
+
+    def consolidate(self):
+        self._trim_conflicts()
         consolidated = dict()
         max_index = max([len(k) for k in self.scheme])
         try:
