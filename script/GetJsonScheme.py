@@ -4,9 +4,12 @@ import collections
 import sys
 import gzip
 import multiprocessing
+import traceback
 
 reload(sys)
 sys.setdefaultencoding('utf8')
+
+sample_frequency = 1
 
 
 def get_open_handler(path):
@@ -16,6 +19,8 @@ def get_open_handler(path):
         return open
 
 class JsonScheme(object):
+
+    null_set = set([None, '', u''])
 
     def __init__(self):
         self.scheme = dict()
@@ -37,26 +42,34 @@ class JsonScheme(object):
             for i, v in enumerate(d):
                 result.update(self._recursive_add(v, path + (0,)))
 
-        elif d is None:
-            result[path] = None
+        # elif d is None:
+        #     result[path] = None
 
-        # elif isinstance(d, basestring):
-        #     result[path] = ''
+        elif isinstance(d, basestring):
+            result[path] = d.strip()
 
         else:
-            result[path] = type(d)()
+            result[path] = d
 
         return result
 
     def add(self, d):
-        for path, end_type in self._recursive_add(d).items():
-            if path in self.scheme:
-                if type(self.scheme[path]) != type(end_type) and self.scheme[path] is not None and end_type is not None:
-                    print 'path {} has multiple types: {}, {}'.format(path, type(self.scheme[path]), type(end_type))
-                if self.scheme[path] is None and end_type is not None:
-                    self.scheme[path] = self._recursive_get_from_path(d, path)
-                    continue
-            self.scheme[path] = self._recursive_get_from_path(d, path)
+        try:
+            for path, end_type in self._recursive_add(d).items():
+                if path in self.scheme:
+                    if type(self.scheme[path]) != type(end_type) and self.scheme[path] is not None and end_type is not None:
+                        print 'path {} has multiple types: {}, {}'.format(path, type(self.scheme[path]), type(end_type))
+                    if self.scheme[path] in self.null_set and end_type not in self.null_set:
+                        self.scheme[path] = end_type
+                    elif isinstance(self.scheme[path], basestring) and isinstance(end_type, basestring) and len(self.scheme[path]) < 100 and len(end_type) > len(self.scheme[path]):
+                        self.scheme[path] = end_type
+                else:
+                    self.scheme[path] = end_type
+        except:
+            print json.dumps(d)
+            print path
+            traceback.print_exc()
+            raise
 
     def display(self):
         for path, end_type in sorted(self.scheme.items(), key=lambda k: (len(k[0]), k[0])):
@@ -128,9 +141,15 @@ class JsonScheme(object):
 def mp_function(path):
     scheme = JsonScheme()
     with get_open_handler(path)(path, 'rb') as ifile:
-        for line in ifile:
+        for i, line in enumerate(ifile):
+            if i % sample_frequency == 0:
+                scheme.add(json.loads(line))
+                # break
+
+        if i % sample_frequency != 0: #also do last line of file if not already added
             scheme.add(json.loads(line))
 
+    # print scheme.scheme
     return scheme.scheme
 
 
@@ -142,8 +161,10 @@ if __name__ == '__main__':
     pool = multiprocessing.Pool(multiprocessing.cpu_count())
 
     scheme = JsonScheme()
-    for scheme_result in pool.map_async(mp_function, file_paths).get(9999999):
-        scheme.scheme.update(scheme_result)
+    for scheme_result in pool.map_async(mp_function, file_paths).get(99999999):
+        for path, end_type in scheme_result.items():
+            if scheme.scheme.get(path, None) in scheme.null_set:
+                scheme.scheme[path] = end_type
 
-    print json.dumps(scheme.consolidate())
+    print json.dumps(scheme.consolidate(), ensure_ascii=False).encode('utf8')
 
