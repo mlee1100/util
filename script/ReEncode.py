@@ -22,7 +22,7 @@ def detect_encoding(file_path):
             for chunk in read_in_chunks(file(file_path, 'rb'), 1024**2):
                 detector_results = chardet.detect(chunk)
                 t.update(len(chunk))
-                if detector_results['encoding'] != encoding:
+                if detector_results['encoding'] != encoding and detector_results['confidence'] > 0.7:
                     break
 
     except KeyboardInterrupt:
@@ -32,6 +32,7 @@ def detect_encoding(file_path):
     except:
         raise
 
+    print detector_results
     return detector_results['encoding']
 
 

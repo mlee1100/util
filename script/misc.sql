@@ -327,8 +327,8 @@ primary key (id)
 ) engine=innodb collate=utf8_unicode_ci;
 
 
-load data local infile 'ALC_Aggregated_20181015.psv'
-into table `alc_consumer_segments_2018_10_12`
+load data local infile 'ALC_Aggregated_20190226.psv'
+into table `alc_consumer_segments_2019_02_27`
 fields terminated by '|' escaped by '\\'
 lines terminated by '\r\n'
 (@person_id,
@@ -604,3 +604,12 @@ alter table alc_consumer_segments_2018_10_12
 add index (email_1)
 ;
 
+
+
+load data local infile 'Netwise_li_urls_hashed.txt'
+into table `B2B_23992_insideview_shorthand_name_hash`
+fields terminated by '|'
+lines terminated by '\n'
+(canonical_shorthand_name_hash)
+set id=null
+;

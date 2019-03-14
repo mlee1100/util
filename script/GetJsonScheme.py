@@ -5,11 +5,16 @@ import sys
 import gzip
 import multiprocessing
 import traceback
+import random
+import argparse
 
 reload(sys)
 sys.setdefaultencoding('utf8')
 
-sample_frequency = 1
+argparser = argparse.ArgumentParser()
+argparser.add_argument('-s', '--sample_frequency', required=False, type=int, default=0)
+argparser.add_argument('file_paths', nargs='+')
+args = argparser.parse_args()
 
 
 def get_open_handler(path):
@@ -24,6 +29,7 @@ class JsonScheme(object):
 
     def __init__(self):
         self.scheme = dict()
+        self.type_conflicts = set()
 
     def _recursive_add(
         self,
@@ -58,10 +64,10 @@ class JsonScheme(object):
             for path, end_type in self._recursive_add(d).items():
                 if path in self.scheme:
                     if type(self.scheme[path]) != type(end_type) and self.scheme[path] is not None and end_type is not None:
-                        print 'path {} has multiple types: {}, {}'.format(path, type(self.scheme[path]), type(end_type))
+                        self.type_conflicts.add('path {} has multiple types: {}, {}'.format(path, *sorted([type(self.scheme[path]), type(end_type)])))
                     if self.scheme[path] in self.null_set and end_type not in self.null_set:
                         self.scheme[path] = end_type
-                    elif isinstance(self.scheme[path], basestring) and isinstance(end_type, basestring) and len(self.scheme[path]) < 100 and len(end_type) > len(self.scheme[path]):
+                    elif isinstance(self.scheme[path], basestring) and isinstance(end_type, basestring) and len(self.scheme[path]) < 50 and len(end_type) > len(self.scheme[path]):
                         self.scheme[path] = end_type
                 else:
                     self.scheme[path] = end_type
@@ -142,29 +148,29 @@ def mp_function(path):
     scheme = JsonScheme()
     with get_open_handler(path)(path, 'rb') as ifile:
         for i, line in enumerate(ifile):
-            if i % sample_frequency == 0:
+            if args.sample_frequency == 0 or random.randint(0, args.sample_frequency) == 0:
                 scheme.add(json.loads(line))
-                # break
-
-        if i % sample_frequency != 0: #also do last line of file if not already added
-            scheme.add(json.loads(line))
+            # if i == 1000:
+            #     break
 
     # print scheme.scheme
-    return scheme.scheme
+    return scheme.scheme, scheme.type_conflicts
 
 
 
 if __name__ == '__main__':
 
-    file_paths = sys.argv[1:]
-
     pool = multiprocessing.Pool(multiprocessing.cpu_count())
 
     scheme = JsonScheme()
-    for scheme_result in pool.map_async(mp_function, file_paths).get(99999999):
+    type_conflicts = set()
+    for scheme_result, scheme_type_conflicts in pool.map_async(mp_function, args.file_paths).get(99999999):
+        type_conflicts.update(scheme_type_conflicts)
         for path, end_type in scheme_result.items():
             if scheme.scheme.get(path, None) in scheme.null_set:
                 scheme.scheme[path] = end_type
 
+    for type_conflict in type_conflicts:
+        print type_conflict
     print json.dumps(scheme.consolidate(), ensure_ascii=False).encode('utf8')
 

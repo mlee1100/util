@@ -33,9 +33,11 @@ converter = dict(
     # encoding = raw_input('Enter new character encoding: '),
     )
 
-for key, value in [(key,value) for key, value in converter.iteritems()]:
-    if not value:
-        converter.pop(key)
+print converter
+
+# for key, value in [(key,value) for key, value in converter.iteritems()]:
+#     if not value:
+#         converter.pop(key)
 
 
 def get_dialect(file_path,**kwargs):
