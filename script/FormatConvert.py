@@ -9,6 +9,7 @@ import shutil
 import sys
 from operator import add
 from pprint import pprint
+from tqdm import tqdm
 
 
 parser = argparse.ArgumentParser(description='Generate Full Contact export files')
@@ -117,7 +118,7 @@ def main(dialect_config,converter):
     converter['dialect'] = dialect_config['dialect']
     converter['escapechar'] = converter.get('escapechar',(getattr(converter['dialect'],'escapechar',None) or '\\'))
 
-    with open(args.filepath,'rb') as ifile, open(args.output,'wb') as ofile:
+    with open(args.filepath,'rb') as ifile, open(args.output,'wb') as ofile, tqdm(total=os.path.getsize(args.filepath)) as t:
         icsv = csv.reader((l.decode(args.encoding) for l in ifile),dialect=dialect_config['dialect'],encoding=args.encoding)
 
         ocsv = csv.writer(ofile,**converter)
@@ -125,7 +126,10 @@ def main(dialect_config,converter):
         if dialect_config['has_header']:
             ocsv.writerow(icsv.next())
 
+        tell = 0
         for i, line in enumerate(icsv):
+            t.update(ifile.tell()-tell)
+            tell = ifile.tell()
             try:
                 if converter['quoting'] in [csv.QUOTE_MINIMAL,csv.QUOTE_ALL,csv.QUOTE_NONNUMERIC] and converter.get('escapechar',dialect_config['dialect'].escapechar):
 

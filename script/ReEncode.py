@@ -64,5 +64,5 @@ if __name__ == '__main__':
                         t.update(len(chunk))
 
                 except:
-                    print chunk
+                    # print chunk
                     raise

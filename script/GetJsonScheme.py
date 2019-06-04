@@ -7,14 +7,29 @@ import multiprocessing
 import traceback
 import random
 import argparse
+import splitstream
 
 reload(sys)
 sys.setdefaultencoding('utf8')
 
 argparser = argparse.ArgumentParser()
 argparser.add_argument('-s', '--sample_frequency', required=False, type=int, default=0)
+argparser.add_argument('-j', '--is_json', required=False, type=int, default=0)
 argparser.add_argument('file_paths', nargs='+')
 args = argparser.parse_args()
+
+
+class Wrapper(object):
+
+    def __init__(self, f):
+        self.__f = f
+
+    def read(self, *n):
+        return self.__f.read(*n)
+
+
+def convert_json_file(open_file):
+    return splitstream.splitfile(Wrapper(open_file), format='json', startdepth=1)
 
 
 def get_open_handler(path):
@@ -147,6 +162,8 @@ class JsonScheme(object):
 def mp_function(path):
     scheme = JsonScheme()
     with get_open_handler(path)(path, 'rb') as ifile:
+        if args.is_json:
+            ifile = convert_json_file(ifile)
         for i, line in enumerate(ifile):
             if args.sample_frequency == 0 or random.randint(0, args.sample_frequency) == 0:
                 scheme.add(json.loads(line))

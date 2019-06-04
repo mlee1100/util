@@ -2542,3 +2542,99 @@ for file in files:
 print(employees)
 
 
+
+
+
+
+
+
+import re
+f = 'sic_naics.txt'
+o = 'sic_naics_fixed.txt'
+valid = re.compile(r'\b[0-9]{4}\b')
+dig4 = re.compile(r'\b[0-9]{4}\b')
+dig6 = re.compile(r'\b[0-9]{6}\b')
+bar = re.compile(r'\|\s+|\s+\|')
+with open(f, 'rb') as ifile, open(o, 'wb') as ofile:
+    inf = ifile.read().replace('\n', ' ')
+    s = 0
+    start_points = [m.start(0) for m in re.finditer(valid, inf)]
+    for point in start_points:
+        p = dig4.sub(lambda mo: '{}|'.format(mo.group(0)), inf[s:point])
+        p = dig6.sub(lambda me: '|{}|'.format(me.group(0)), p)
+        ofile.write(bar.sub('|', p) + '\n')
+        s = int(point)
+
+
+
+
+f = 'loglines_sorted.txt'
+results = dict()
+with open(f, 'rb') as ifile:
+    cline = None
+    counter = 0
+    for line in ifile:
+        if line != cline:
+            results[cline] = counter
+            cline = line
+            counter = 1
+        else:
+            counter += 1
+
+
+print sorted(results.items(), key=lambda x: x[1], reverse=True)
+
+
+
+import csv
+from loaders.businesses_loader import BusinessesModel
+from loaders.business_domains_loader import BusinessDomainsModel
+
+f = '/home/ec2-user/temp/cleansing/Matching File_Jan2019.csv'
+o = '/home/ec2-user/temp/cleansing/Matching File_Jan2019 Appended.csv'
+
+with open(f, 'rt', encoding='latin1') as ifile, open(o, 'wt', encoding='utf-8') as ofile:
+    icsv = csv.DictReader(ifile, delimiter=',')
+    ocsv = csv.DictWriter(ofile, delimiter=',', fieldnames=['company_name_aws', 'company_website_aws', 'company_name_nwd', 'company_name_normalized_nwd', 'company_domain_nwd', 'company_website_nwd'])
+    ocsv.writeheader()
+    for line in icsv:
+        od = dict(line)
+        businesses_model = BusinessesModel(name=line['company_name_aws'])
+        od['company_name_nwd'] = businesses_model.name
+        od['company_name_normalized_nwd'] = businesses_model.cleansed_name
+        business_domains_model = BusinessDomainsModel(url=line['company_website_aws'])
+        od['company_domain_nwd'] = business_domains_model.domain
+        od['company_website_nwd'] = business_domains_model.website
+        _ = ocsv.writerow(od)
+
+
+
+
+
+import csv
+from loaders.businesses_loader import BusinessesModel
+from loaders.business_domains_loader import BusinessDomainsModel
+
+f = '/home/ec2-user/temp/override/business_override_name_to_domain_000'
+o = '/home/ec2-user/temp/override/business_override_name_to_domain.csv'
+
+with open(f, 'rt', encoding='utf-8') as ifile, open(o, 'wt', encoding='utf-8') as ofile:
+    icsv = csv.DictReader(ifile, delimiter=',')
+    ocsv = csv.DictWriter(ofile, delimiter=',', fieldnames=['name_from', 'name_normalized_from', 'subdomain_to', 'domain_to', 'website_to'])
+    ocsv.writeheader()
+    dup_set = set()
+    for line in icsv:
+        od = dict(line)
+        businesses_model = BusinessesModel(name=line['name_from'])
+        business_domains_model = BusinessDomainsModel(url=line['domain_to'])
+        if businesses_model.cleansed_name and businesses_model.name not in dup_set:
+            dup_set.add(businesses_model.name)
+            od['name_from'] = businesses_model.name
+            od['name_normalized_from'] = businesses_model.cleansed_name
+            od['subdomain_to'] = business_domains_model.subdomain
+            od['domain_to'] = business_domains_model.domain
+            od['website_to'] = business_domains_model.website
+            _ = ocsv.writerow(od)
+
+
+

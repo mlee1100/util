@@ -613,3 +613,501 @@ lines terminated by '\n'
 (canonical_shorthand_name_hash)
 set id=null
 ;
+
+
+
+load data local infile 'isp_ips.csv'
+into table `B2B_24113_aberdeen_ips`
+fields terminated by '|'
+lines terminated by '\n'
+ignore 1 lines
+(ip_address)
+set id=null
+;
+
+load data local infile 'aberdeen.tsv.dedup'
+into table `B2B_24113_aberdeen_ips_with_emails`
+fields terminated by '\t'
+lines terminated by '\n'
+ignore 1 lines
+(ip_address, email)
+set id=null
+;
+
+
+select pp.first_name,
+    pp.last_name,
+    pp.title,
+    pc.name AS company_name,
+    (SELECT CASE
+            WHEN `production_validated_emails_v8.0.2`.status = 'Ok' THEN `production_business_emails_v8.0.0`.email
+            WHEN `production_validated_emails_v8.0.2`.status = 'Bad' THEN NULL
+            WHEN `production_validated_emails_v8.0.2`.hard_bounce = 1 THEN NULL
+            WHEN `production_validated_emails_v8.0.2`.additional_status_info = 'ServerIsCatchAll' THEN `production_business_emails_v8.0.0`.email
+            WHEN `production_validated_emails_v8.0.2`.id IS NOT NULL THEN NULL
+            WHEN `production_validated_email_domains_v8.0.1`.most_recent_additional_email_status_info IN ('DomainIsInexistent', 'NoMxServersFound') THEN NULL
+            WHEN `production_validated_email_domains_v8.0.1`.most_recent_additional_email_status_info = 'ServerIsCatchAll' THEN `production_business_emails_v8.0.0`.email
+            WHEN `production_validated_emails_v8.0.2`.id IS NULL THEN NULL
+            ELSE NULL
+        END
+        FROM `production_business_emails_v8.0.0`
+        LEFT OUTER JOIN `production_validated_emails_v8.0.2` ON `production_business_emails_v8.0.0`.md5 = `production_validated_emails_v8.0.2`.md5
+        LEFT OUTER JOIN `production_validated_email_domains_v8.0.1` ON `production_business_emails_v8.0.0`.domain = `production_validated_email_domains_v8.0.1`.email_domain
+        WHERE pp.id = `production_business_emails_v8.0.0`.person_id
+        ORDER BY FIELD(`production_validated_emails_v8.0.2`.status,'Ok') DESC,
+            `production_business_emails_v8.0.0`.best_guess DESC,
+            FIELD(`production_validated_email_domains_v8.0.1`.most_recent_additional_email_status_info,'ServerIsCatchAll') DESC,
+            FIELD(`production_validated_emails_v8.0.2`.status,'Bad') ASC,
+            `production_validated_emails_v8.0.2`.hard_bounce ASC,
+            `production_business_emails_v8.0.0`.guess_confidence DESC,
+            FIELD( `production_business_emails_v8.0.0`.`pattern`, 'filn','ln','fn.ln','fnln','lnfi','fnli','fn','fi.ln','fn_ln','fn.li','fi_ln','fn_li' ) ASC,
+            `production_business_emails_v8.0.0`.id ASC
+        LIMIT 1) as b2b_email,
+    a.ip_address,
+    pp.company_phone_waterfall,
+    pp.linkedin_profile_url
+from `production_persons_v8.0.0` pp
+inner JOIN `production_companies_v8.0.0` pc on pp.matched_processed_company_id = pc.id
+inner join `production_person_consumer_matches_v8.0.0` ppc on pp.id = ppc.person_id
+inner join ticket_tables.B2B_24113_aberdeen_ips_with_emails a on ppc.email = a.email
+where pp.personal_country = 'United States'
+;
+
+
+------------------------------
+
+create table temp.name_city_state (
+object_id char(32),
+cleansed_name varchar(1024) distkey,
+compiled_city varchar(200),
+compiled_state varchar(1024),
+domain varchar(400),
+source_id INTEGER
+)
+sortkey (cleansed_name, compiled_city, compiled_state);
+
+insert into temp.name_city_state
+select b.object_id,
+    b.cleansed_name,
+    bl.compiled_city,
+    bl.compiled_state,
+    bd.domain,
+    o.source_id
+from staging.objects o
+inner join staging.businesses b on o.object_id = b.object_id
+inner join staging.business_locations bl on o.object_id = bl.object_id
+left outer join staging.business_domains bd on o.object_id = bd.object_id
+where b.cleansed_name <> ''
+    and bl.compiled_city <> ''
+    and bl.compiled_state <> ''
+;
+
+CREATE TABLE temp.grouped AS
+SELECT min(b.object_id) as object_id,
+    b.cleansed_name,
+    bl.compiled_city,
+    bl.compiled_state,
+    bd.domain,
+    count(DISTINCT o.source_id) AS num_sources
+FROM objects o
+INNER JOIN businesses b ON o.object_id = b.object_id
+INNER JOIN business_locations bl ON o.object_id = bl.object_id
+LEFT OUTER JOIN business_domains bd ON o.object_id = bd.object_id
+WHERE b.cleansed_name <> ''
+    AND bl.compiled_city <> ''
+    AND bl.compiled_state <> ''
+--    AND bd.domain <> ''
+GROUP BY b.cleansed_name,
+    bl.compiled_city,
+    bl.compiled_state,
+    bd.domain
+HAVING (domain IS NOT NULL OR num_sources > 1)
+;
+
+
+
+CREATE TABLE temp.grouped_best_domain AS
+SELECT object_id,
+    cleansed_name,
+    compiled_city,
+    compiled_state,
+    domain
+FROM (
+SELECT object_id,
+    cleansed_name,
+    compiled_city,
+    compiled_state,
+    domain,
+    row_number() OVER (PARTITION by cleansed_name, compiled_city, compiled_state ORDER BY ISNULL(domain) ASC, num_sources desc) AS row_num
+FROM temp.grouped
+) t
+WHERE row_num = 1
+;
+
+CREATE TABLE company_match AS 
+SELECT min(b.object_id), 
+FROM staging.businesses b
+INNER JOIN staging.business_locations bl ON b.object_id = bl.object_id
+INNER JOIN temp.grouped_best_domain d ON b.cleansed_name = d.cleansed_name
+    AND bl.compiled_city = d.compiled_city
+    AND bl.compiled_state = d.compiled_state
+-- LEFT OUTER JOIN staging.business_domains bd ON b.object_id = bd.object_id
+;
+
+
+-----------
+DROP TABLE if EXISTS temp.name_city_state;
+CREATE TABLE temp.name_city_state (
+object_id char(32) encode zstd,
+cleansed_name varchar(1024) encode raw distkey,
+compiled_city varchar(200) encode zstd,
+compiled_state varchar(1024) encode zstd,
+domain varchar(400) encode zstd,
+source_id INTEGER encode zstd
+)
+sortkey (cleansed_name, compiled_city, compiled_state, domain);
+
+INSERT INTO temp.name_city_state
+SELECT b.object_id,
+    b.cleansed_name,
+    LOWER(bl.compiled_city),
+    LOWER(bl.compiled_state),
+    bd.domain,
+    o.source_id
+FROM staging.objects o
+INNER JOIN staging.businesses b ON o.object_id = b.object_id
+INNER JOIN staging.business_locations bl ON o.object_id = bl.object_id
+LEFT OUTER JOIN staging.business_domains bd ON o.object_id = bd.object_id
+WHERE b.cleansed_name <> ''
+    AND bl.compiled_city <> ''
+    AND bl.compiled_state <> ''
+;
+
+
+DROP TABLE if EXISTS temp.grouped;
+CREATE TABLE temp.grouped (
+match_id char(32) encode zstd,
+cleansed_name varchar(1024) encode raw distkey,
+compiled_city varchar(200) encode zstd,
+compiled_state varchar(1024) encode zstd,
+domain varchar(400) encode zstd,
+num_sources INTEGER encode zstd
+)
+sortkey (cleansed_name, compiled_city, compiled_state, domain);
+
+INSERT INTO temp.grouped
+SELECT min(object_id) AS match_id,
+    cleansed_name,
+    compiled_city,
+    compiled_state,
+    domain,
+    count(DISTINCT source_id) AS num_sources
+FROM temp.name_city_state ncs
+GROUP BY cleansed_name,
+    compiled_city,
+    compiled_state,
+    domain
+HAVING (domain IS NOT NULL OR num_sources > 1)
+;
+
+
+DROP TABLE if EXISTS temp.grouped_best_domain;
+CREATE TABLE temp.grouped_best_domain (
+match_id char(32) encode zstd,
+cleansed_name varchar(1024) encode zstd,
+compiled_city varchar(200) encode zstd,
+compiled_state varchar(1024) encode zstd,
+domain varchar(400) encode raw distkey
+)
+sortkey (domain, cleansed_name, compiled_city, compiled_state);
+
+INSERT INTO temp.grouped_best_domain
+SELECT match_id,
+    cleansed_name,
+    compiled_city,
+    compiled_state,
+    domain
+FROM (
+SELECT match_id,
+    cleansed_name,
+    compiled_city,
+    compiled_state,
+    domain,
+    row_number() OVER (PARTITION by cleansed_name, compiled_city, compiled_state ORDER BY ISNULL(domain) ASC, num_sources desc) AS row_num
+FROM temp.grouped
+) t
+WHERE row_num = 1
+;
+
+
+DROP TABLE if EXISTS temp.grouped_domain_match;
+CREATE TABLE temp.grouped_domain_match (
+match_id char(32) encode zstd,
+cleansed_name varchar(1024) encode raw distkey,
+compiled_city varchar(200) encode zstd,
+compiled_state varchar(1024) encode zstd,
+domain varchar(400) encode zstd
+)
+sortkey (cleansed_name, compiled_city, compiled_state, domain);
+
+INSERT INTO temp.grouped_domain_match
+SELECT min(d2.match_id) AS match_id,
+    d.cleansed_name,
+    d.compiled_city,
+    d.compiled_state,
+    d.domain
+FROM temp.grouped_best_domain d
+INNER JOIN temp.grouped_best_domain d2 ON d.domain = d2.domain
+GROUP BY
+    d.cleansed_name,
+    d.compiled_city,
+    d.compiled_state,
+    d.domain
+;
+
+INSERT INTO temp.grouped_domain_match
+SELECT d.match_id,
+    d.cleansed_name,
+    d.compiled_city,
+    d.compiled_state,
+    d.domain
+FROM temp.grouped_best_domain d
+WHERE d.domain IS NULL
+;
+
+vacuum temp.grouped_domain_match to 100 percent;
+
+DROP TABLE if EXISTS temp.company_match;
+CREATE TABLE temp.company_match (
+match_id char(32) encode zstd,
+object_id char(32) encode raw distkey
+)
+sortkey (object_id);
+
+INSERT INTO temp.company_match
+SELECT d.match_id, ncs.object_id
+FROM temp.name_city_state ncs
+INNER JOIN temp.grouped_domain_match d ON ncs.cleansed_name = d.cleansed_name
+    AND ncs.compiled_city = d.compiled_city
+    AND ncs.compiled_state = d.compiled_state
+WHERE ncs.cleansed_name = d.cleansed_name
+;
+
+
+-- add in domain records
+DROP TABLE if EXISTS temp.domain;
+CREATE TABLE temp.domain (
+object_id char(32) encode zstd,
+domain varchar(400) encode raw distkey,
+source_id INTEGER encode zstd
+)
+sortkey (domain);
+
+INSERT INTO temp.domain
+SELECT bd.object_id,
+    bd.domain,
+    o.source_id
+FROM staging.objects o
+INNER JOIN staging.business_domains bd ON o.object_id = bd.object_id
+LEFT OUTER JOIN temp.company_match m ON o.object_id = m.object_id
+WHERE bd.domain <> ''
+    AND m.object_id IS NULL
+;
+
+-- add in where domains match
+INSERT INTO temp.company_match
+SELECT DISTINCT m.match_id, d.object_id
+FROM temp.grouped_domain_match m
+INNER JOIN temp.domain d ON m.domain = d.domain
+;
+
+vacuum temp.company_match TO 100 percent;
+
+
+
+TRUNCATE TABLE temp.domain;
+INSERT INTO temp.domain
+SELECT bd.object_id,
+    bd.domain,
+    o.source_id
+FROM staging.objects o
+INNER JOIN staging.business_domains bd ON o.object_id = bd.object_id
+LEFT OUTER JOIN temp.company_match m ON o.object_id = m.object_id
+WHERE bd.domain <> ''
+    AND m.object_id IS NULL
+;
+
+-- add in where domains don't match
+INSERT INTO temp.company_match
+SELECT min(d.object_id) AS match_id, d2.object_id
+FROM temp.domain d
+INNER JOIN temp.domain d2 ON d.domain = d2.domain
+GROUP BY d2.object_id
+HAVING count(DISTINCT d.source_id) > 1
+;
+
+
+vacuum temp.company_match TO 100 percent;
+
+
+
+UNLOAD ('SELECT * FROM export.athena_contacts')
+TO 's3://nwd-athena-production/consolidated/2019_05_07/'
+CREDENTIALS 'aws_iam_role=arn:aws:iam::759086516457:role/nwd-redshift-s3-access'
+FORMAT AS CSV
+NULL AS ''
+;
+
+
+
+CREATE TABLE temp.emails_to_onboard (
+    md5 CHAR(32) encode raw sortkey distkey
+)
+;
+
+INSERT INTO temp.emails_to_onboard
+SELECT DISTINCT MD5(email) FROM staging.emails
+WHERE email <> ''
+;
+
+VACUUM temp.emails_to_onboard TO 100 PERCENT;
+ANALYZE temp.emails_to_onboard;
+
+UNLOAD ('SELECT md5 AS email_md5, md5 AS file_wide_field FROM temp.emails_to_onboard')
+TO 's3://nwd-exports/liveramp/matchbacks/20190529/'
+CREDENTIALS 'aws_iam_role=arn:aws:iam::759086516457:role/nwd-redshift-s3-access'
+FORMAT AS CSV
+HEADER
+NULL AS '';
+
+
+
+SELECT
+    COUNT(NULLIF(address1, '')) AS address1,
+    COUNT(NULLIF(address1_global, '')) AS address1_global,
+    COUNT(NULLIF(address1_usa, '')) AS address1_usa,
+    COUNT(NULLIF(address2, '')) AS address2,
+    COUNT(NULLIF(address2_global, '')) AS address2_global,
+    COUNT(NULLIF(address2_usa, '')) AS address2_usa,
+    COUNT(NULLIF(city, '')) AS city,
+    COUNT(NULLIF(city_global, '')) AS city_global,
+    COUNT(NULLIF(city_usa, '')) AS city_usa,
+    COUNT(NULLIF(corporate_entity_type, '')) AS corporate_entity_type,
+    COUNT(NULLIF(country, '')) AS country,
+    COUNT(NULLIF(country_global, '')) AS country_global,
+    COUNT(NULLIF(country_usa, '')) AS country_usa,
+    COUNT(NULLIF(description, '')) AS description,
+    COUNT(NULLIF(domain, '')) AS domain,
+    COUNT(NULLIF(employees, '')) AS employees,
+    COUNT(NULLIF(employees_bucket, '')) AS employees_bucket,
+    COUNT(home_based_indicator) AS home_based_indicator,
+    COUNT(id) AS id,
+    COUNT(NULLIF(industries, '')) AS industries,
+    COUNT(last_found) AS last_found,
+    COUNT(last_processed) AS last_processed,
+    COUNT(NULLIF(lat, 0)) AS lat,
+    COUNT(NULLIF(lat_global, 0)) AS lat_global,
+    COUNT(NULLIF(lat_usa, 0)) AS lat_usa,
+    COUNT(NULLIF(lon, 0)) AS lon,
+    COUNT(NULLIF(lon_global, 0)) AS lon_global,
+    COUNT(NULLIF(lon_usa, 0)) AS lon_usa,
+    COUNT(NULLIF(naics_codes, '')) AS naics_codes,
+    COUNT(NULLIF(name, '')) AS name,
+    COUNT(NULLIF(name_global, '')) AS name_global,
+    COUNT(NULLIF(name_normalized, '')) AS name_normalized,
+    COUNT(NULLIF(name_usa, '')) AS name_usa,
+    COUNT(num_processed_matches) AS num_processed_matches,
+    COUNT(NULLIF(persistent_id, '')) AS persistent_id,
+    COUNT(NULLIF(persistent_id_type, '')) AS persistent_id_type,
+    COUNT(NULLIF(phone, '')) AS phone,
+    COUNT(NULLIF(phone_global, '')) AS phone_global,
+    COUNT(NULLIF(phone_usa, '')) AS phone_usa,
+    COUNT(NULLIF(primary_industry, '')) AS primary_industry,
+    COUNT(NULLIF(primary_naics_code, '')) AS primary_naics_code,
+    COUNT(NULLIF(primary_sic_code, '')) AS primary_sic_code,
+    COUNT(NULLIF(profile_url_facebook, '')) AS profile_url_facebook,
+    COUNT(NULLIF(profile_url_google, '')) AS profile_url_google,
+    COUNT(NULLIF(profile_url_instagram, '')) AS profile_url_instagram,
+    COUNT(NULLIF(profile_url_linkedin, '')) AS profile_url_linkedin,
+    COUNT(NULLIF(profile_url_twitter, '')) AS profile_url_twitter,
+    COUNT(NULLIF(profile_url_yelp, '')) AS profile_url_yelp,
+    COUNT(NULLIF(profile_url_youtube, '')) AS profile_url_youtube,
+    COUNT(NULLIF(profile_url_zoominfo, '')) AS profile_url_zoominfo,
+    COUNT(NULLIF(provider_id, 0)) AS provider_id,
+    COUNT(NULLIF(provider_record_id, '')) AS provider_record_id,
+    COUNT(random_tenth_percent) AS random_tenth_percent,
+    COUNT(NULLIF(raw_address, '')) AS raw_address,
+    COUNT(NULLIF(raw_address_global, '')) AS raw_address_global,
+    COUNT(NULLIF(raw_address_usa, '')) AS raw_address_usa,
+    COUNT(NULLIF(revenue, '')) AS revenue,
+    COUNT(NULLIF(revenue_bucket, '')) AS revenue_bucket,
+    COUNT(NULLIF(sic_codes, '')) AS sic_codes,
+    COUNT(NULLIF(sole_propriertorship_indicator, 0)) AS sole_propriertorship_indicator,
+    COUNT(source_id) AS source_id,
+    COUNT(NULLIF(source_record_id, '')) AS source_record_id,
+    COUNT(NULLIF(state, '')) AS state,
+    COUNT(NULLIF(state_global, '')) AS state_global,
+    COUNT(NULLIF(state_short, '')) AS state_short,
+    COUNT(NULLIF(state_short_global, '')) AS state_short_global,
+    COUNT(NULLIF(state_short_usa, '')) AS state_short_usa,
+    COUNT(NULLIF(state_usa, '')) AS state_usa,
+    COUNT(NULLIF(website, '')) AS website,
+    COUNT(NULLIF(year_company_established, 0)) AS year_company_established,
+    COUNT(NULLIF(year_founded, 0)) AS year_founded,
+    COUNT(NULLIF(zip, '')) AS zip,
+    COUNT(NULLIF(zip4, '')) AS zip4,
+    COUNT(NULLIF(zip4_usa, '')) AS zip4_usa,
+    COUNT(NULLIF(zip_global, '')) AS zip_global,
+    COUNT(NULLIF(zip_usa, '')) AS zip_usa
+FROM public.production_companies
+;
+
+
+SELECT
+    COUNT(match_id) AS match_id,
+    COUNT(persistent_id) AS persistent_id,
+    COUNT(persistent_id_type) AS persistent_id_type,
+    COUNT(num_processed_matches) AS num_processed_matches,
+    COUNT(name) AS name,
+    COUNT(name_normalized) AS name_normalized,
+    COUNT(description) AS description,
+    COUNT(domain) AS domain,
+    COUNT(website) AS website,
+    COUNT(profile_url_linkedin) AS profile_url_linkedin,
+    COUNT(profile_url_linkedin_path) AS profile_url_linkedin_path,
+    COUNT(profile_url_google) AS profile_url_google,
+    COUNT(profile_url_yelp) AS profile_url_yelp,
+    COUNT(profile_url_facebook) AS profile_url_facebook,
+    COUNT(profile_url_zoominfo) AS profile_url_zoominfo,
+    COUNT(profile_url_twitter) AS profile_url_twitter,
+    COUNT(profile_url_instagram) AS profile_url_instagram,
+    COUNT(profile_url_youtube) AS profile_url_youtube,
+    COUNT(location_id) AS location_id,
+    COUNT(phone) AS phone,
+    COUNT(address1) AS address1,
+    COUNT(address2) AS address2,
+    COUNT(city) AS city,
+    COUNT(state) AS state,
+    COUNT(state_short) AS state_short,
+    COUNT(zip) AS zip,
+    COUNT(zip4) AS zip4,
+    COUNT(country) AS country,
+    COUNT(lat) AS lat,
+    COUNT(lon) AS lon,
+    COUNT(raw_address) AS raw_address,
+    COUNT(employees) AS employees,
+    COUNT(employees_bucket) AS employees_bucket,
+    COUNT(revenue) AS revenue,
+    COUNT(revenue_bucket) AS revenue_bucket,
+    COUNT(primary_industry) AS primary_industry,
+    COUNT(industries) AS industries,
+    COUNT(primary_sic_code) AS primary_sic_code,
+    COUNT(sic_codes) AS sic_codes,
+    COUNT(primary_naics_code) AS primary_naics_code,
+    COUNT(naics_codes) AS naics_codes,
+    COUNT(year_company_established) AS year_company_established,
+    COUNT(corporate_entity_type) AS corporate_entity_type,
+    COUNT(last_found) AS last_found,
+    COUNT(last_processed) AS last_processed,
+    COUNT(random_tenth_percent) AS random_tenth_percent,
+FROM production.companies

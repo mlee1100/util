@@ -82,50 +82,59 @@ if __name__ == '__main__':
   issues = 0
   tell = 0
 
-  with open(args.filepath,'rU') as ifile, tqdm(total=os.path.getsize(args.filepath)) as t:
-    icsv = csv.reader((line.replace('\0','').replace('\r','') for line in ifile),delimiter=args.delimiter,quoting=args.quoting,escapechar=args.escapechar,doublequote=use_double_quote)
-    # icsv = csv.reader(ifile,delimiter=args.delimiter,quoting=args.quoting,escapechar=args.escapechar,doublequote=use_double_quote)
-    header = icsv.next()
+  if args.filepath == '-':
+    ifile = sys.stdin
+    t = None
+  else:
+    ifile = open(args.filepath, 'rU')
+    t = tqdm(total=os.path.getsize(args.filepath))
 
-    count_list = [0 for v in header]
-    count_set = [set() for v in header]
+  icsv = csv.reader((line.replace('\0','').replace('\r','') for line in ifile),delimiter=args.delimiter,quoting=args.quoting,escapechar=args.escapechar,doublequote=use_double_quote)
+  # icsv = csv.reader(ifile,delimiter=args.delimiter,quoting=args.quoting,escapechar=args.escapechar,doublequote=use_double_quote)
+  header = icsv.next()
 
-    if args.distinct:
+  count_list = [0 for v in header]
+  count_set = [set() for v in header]
+
+  if args.distinct:
+    for i, line in enumerate(icsv):
+      if i == args.stop:
+        break
+      lines += 1
+      if t:
+        t.update(ifile.tell()-tell)
+        tell = ifile.tell()
+      try:
+        count_set = [append_to_set(s,line[i].lower()) for i, s in enumerate(count_set)]
+      except:
+        print line
+        issues += 1
+        traceback.print_exc()
+        # sys.exit(1)
+
+  else:
+    try:
       for i, line in enumerate(icsv):
         if i == args.stop:
           break
         lines += 1
-        t.update(ifile.tell()-tell)
-        tell = ifile.tell()
+        if t:
+          t.update(ifile.tell()-tell)
+          tell = ifile.tell()
         try:
-          count_set = [append_to_set(s,line[i].lower()) for i, s in enumerate(count_set)]
+          count_list = map(add,count_list,return_int_list(line))
+          previous_line = line
         except:
+          print previous_line
           print line
           issues += 1
           traceback.print_exc()
+          # raise
           # sys.exit(1)
+    except:
+      print lines
+      raise
 
-    else:
-      try:
-        for i, line in enumerate(icsv):
-          if i == args.stop:
-            break
-          lines += 1
-          t.update(ifile.tell()-tell)
-          tell = ifile.tell()
-          try:
-            count_list = map(add,count_list,return_int_list(line))
-            previous_line = line
-          except:
-            print previous_line
-            print line
-            issues += 1
-            traceback.print_exc()
-            # raise
-            # sys.exit(1)
-      except:
-        print lines
-        raise
 
   output_values = ([len(s) for s in count_set] if args.distinct else count_list)
   field_dict = [(field,value) for field, value in zip(header,output_values)]
