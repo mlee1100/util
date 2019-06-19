@@ -14,7 +14,7 @@ sys.setdefaultencoding('utf8')
 
 argparser = argparse.ArgumentParser()
 argparser.add_argument('-s', '--sample_frequency', required=False, type=int, default=0)
-argparser.add_argument('-j', '--is_json', required=False, type=int, default=0)
+argparser.add_argument('-j', '--is_json', action='store_true')
 argparser.add_argument('file_paths', nargs='+')
 args = argparser.parse_args()
 

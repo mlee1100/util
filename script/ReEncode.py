@@ -8,6 +8,7 @@ from tqdm import tqdm
 parser = argparse.ArgumentParser(description='Generate Fillrates for flat file')
 parser.add_argument('-f','--filepath',required=True, type=str, help='path of file to get fill rate on')
 parser.add_argument('-o','--output_path',required=False, type=str, default=None, help='output file path')
+parser.add_argument('-i','--input_encoding',required=False, type=str, default=None, help='input file encoding')
 parser.add_argument('-e','--encoding',required=False, type=str, default='utf8', help='new file encoding')
 parser.add_argument('-a','--action',required=False, type=str, default='strict', help='action on encode errors')
 args = parser.parse_args()
@@ -50,8 +51,11 @@ def read_in_chunks(file_object, chunk_size=4*1024**2):
 
 
 if __name__ == '__main__':
-    encoding = detect_encoding(args.filepath)
-    print encoding
+    if not args.input_encoding:
+        encoding = detect_encoding(args.filepath)
+        print encoding
+    else:
+        encoding = args.input_encoding
     if args.output_path is not None:
         args.output_path = os.path.abspath(args.output_path)
         if args.filepath == args.output_path:
@@ -64,5 +68,7 @@ if __name__ == '__main__':
                         t.update(len(chunk))
 
                 except:
-                    # print chunk
+                    print args.filepath
+                    if os.path.exists(args.output_path):
+                        os.remove(args.output_path)
                     raise
