@@ -1110,4 +1110,18 @@ SELECT
     COUNT(last_found) AS last_found,
     COUNT(last_processed) AS last_processed,
     COUNT(random_tenth_percent) AS random_tenth_percent,
-FROM production.companies
+FROM production.companies;
+
+TRUNCATE TABLE onboarding.current_matchback;
+COPY onboarding.current_matchback
+FROM 's3://nwd-imports/liveramp-matchbacks/2019_06_email_only/'
+CREDENTIALS 'aws_iam_role=arn:aws:iam::759086516457:role/nwd-redshift-s3-access'
+ENCODING UTF8
+GZIP
+IGNOREHEADER AS 1;
+
+
+UNLOAD ('SELECT md5 AS email_md5, md5 AS file_wide_field FROM b2b_emails')
+TO 's3://nwd-exports/liveramp/matchbacks/20190626/'
+CREDENTIALS 'aws_iam_role=arn:aws:iam::759086516457:role/nwd-redshift-s3-access'
+FORMAT AS CSV;

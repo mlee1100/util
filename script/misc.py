@@ -2638,3 +2638,20 @@ with open(f, 'rt', encoding='utf-8') as ifile, open(o, 'wt', encoding='utf-8') a
 
 
 
+def ltr(l):
+    max_len = max(map(lambda x: len(x), l))
+    for i, item in enumerate(l):
+        length = len(item)
+        spaces = max_len - length
+        if i == 0:
+            print(f'{" "*19}\'\\\\b\' || \'{item.lower()}\'{" "*(spaces+2)} || \'\\\\b\'')
+        else:
+            print(f'{" "*12}\'|\' || \'\\\\b\' || \'{item.lower()}\'{" "*(spaces+2)} || \'\\\\b\'')
+
+def str(l):
+    max_len = max(map(lambda x: len(x), l))
+    for i, item in enumerate(l):
+        length = len(item)
+        spaces = max_len - length
+        print(f'OR public.fn_segp_{item}($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) = 1')
+

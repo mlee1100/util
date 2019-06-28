@@ -82,7 +82,7 @@ class JsonScheme(object):
                         self.type_conflicts.add('path {} has multiple types: {}, {}'.format(path, *sorted([type(self.scheme[path]), type(end_type)])))
                     if self.scheme[path] in self.null_set and end_type not in self.null_set:
                         self.scheme[path] = end_type
-                    elif isinstance(self.scheme[path], basestring) and isinstance(end_type, basestring) and len(self.scheme[path]) < 50 and len(end_type) > len(self.scheme[path]):
+                    elif isinstance(self.scheme[path], basestring) and isinstance(end_type, basestring) and len(self.scheme[path]) < 10 and len(end_type) > len(self.scheme[path]):
                         self.scheme[path] = end_type
                 else:
                     self.scheme[path] = end_type
@@ -165,8 +165,11 @@ def mp_function(path):
         if args.is_json:
             ifile = convert_json_file(ifile)
         for i, line in enumerate(ifile):
-            if args.sample_frequency == 0 or random.randint(0, args.sample_frequency) == 0:
-                scheme.add(json.loads(line))
+            try:
+                if args.sample_frequency == 0 or random.randint(0, args.sample_frequency) == 0:
+                    scheme.add(json.loads(line))
+            except:
+                pass
             # if i == 1000:
             #     break
 
