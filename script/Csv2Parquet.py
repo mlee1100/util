@@ -2,6 +2,7 @@ import pandas as pd
 import sys
 import os
 import csv
+from pyarrow.parquet import ParquetFile
 
 args = sys.argv[1:]
 infile = args[0]
@@ -23,3 +24,5 @@ with open(infile, 'rb') as ifile:
 
 
 pd.read_csv(infile, quoting=csv.QUOTE_MINIMAL, escapechar='\\', delimiter=delimiter, converters={i: str for i in range(0, 1000)}).to_parquet(outfile)
+print(outfile)
+print(ParquetFile(outfile).schema)
