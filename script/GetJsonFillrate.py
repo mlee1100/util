@@ -253,7 +253,11 @@ def fillrate_file(filename):
     fr = Fillrate()
     bad_json = 0
     first_bad_json = 0
-    with gzip.open(filename, 'rt', encoding='utf8') as ifile:
+    if filename.endswith('.gz'):
+        opener = gzip.open
+    else:
+        opener = open
+    with opener(filename, 'rt', encoding='utf8') as ifile:
         for i, line in enumerate(ifile):
             try:
                 fr.add(json.loads(line))
@@ -271,7 +275,7 @@ if __name__ == '__main__':
     files = sys.argv[1:]
     fr_global = Fillrate()
     pool = multiprocessing.Pool(multiprocessing.cpu_count())
-    res = pool.map(fillrate_file, files, 1)
+    res = pool.imap_unordered(fillrate_file, files, 1)
     total_errors = 0
     for r, filename, bad_json_count, first_bad_json_line in res:
         if bad_json_count:

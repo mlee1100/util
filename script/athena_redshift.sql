@@ -62,175 +62,176 @@ SET search_path TO production;
 -- WHERE row_num = 1
 -- ;
 
-DROP TABLE IF EXISTS temp.athena_personal_emails_raw;
-CREATE TABLE temp.athena_personal_emails_raw (
-    person_match_id CHAR(32) encode raw distkey sortkey,
-    p2b_email_1 varchar(1020) encode zstd,
-    p2b_email_2 varchar(1020) encode zstd,
-    p2b_email_3 varchar(1020) encode zstd,
-    p2b_email_4 varchar(1020) encode zstd,
-    p2b_email_5 varchar(1020) encode zstd,
-    p2b_email_6 varchar(1020) encode zstd,
-    p2b_email_7 varchar(1020) encode zstd,
-    p2b_email_8 varchar(1020) encode zstd,
-    p2b_email_9 varchar(1020) encode zstd
-)
-;
+-- DROP TABLE IF EXISTS temp.athena_personal_emails_raw;
+-- CREATE TABLE temp.athena_personal_emails_raw (
+--     person_match_id CHAR(32) encode raw distkey sortkey,
+--     p2b_email_1 varchar(1020) encode zstd,
+--     p2b_email_2 varchar(1020) encode zstd,
+--     p2b_email_3 varchar(1020) encode zstd,
+--     p2b_email_4 varchar(1020) encode zstd,
+--     p2b_email_5 varchar(1020) encode zstd,
+--     p2b_email_6 varchar(1020) encode zstd,
+--     p2b_email_7 varchar(1020) encode zstd,
+--     p2b_email_8 varchar(1020) encode zstd,
+--     p2b_email_9 varchar(1020) encode zstd
+-- )
+-- ;
 
-INSERT INTO temp.athena_personal_emails_raw 
-SELECT person_match_id,
-    SPLIT_PART(grouped_emails, '|', 1) AS p2b_email_1,
-    SPLIT_PART(grouped_emails, '|', 2) AS p2b_email_2,
-    SPLIT_PART(grouped_emails, '|', 3) AS p2b_email_3,
-    SPLIT_PART(grouped_emails, '|', 4) AS p2b_email_4,
-    SPLIT_PART(grouped_emails, '|', 5) AS p2b_email_5,
-    SPLIT_PART(grouped_emails, '|', 6) AS p2b_email_6,
-    SPLIT_PART(grouped_emails, '|', 7) AS p2b_email_7,
-    SPLIT_PART(grouped_emails, '|', 8) AS p2b_email_8,
-    SPLIT_PART(grouped_emails, '|', 9) AS p2b_email_9
-FROM (
-    SELECT t.person_match_id,
-        LISTAGG(t.email, '|') WITHIN GROUP (ORDER BY
-            t.onboarded DESC
-            -- t.confidence DESC,
-            -- t.id ASC
-            ) || '|||||||||' AS grouped_emails
-    FROM 
-        (
-            SELECT consumer_emails.*,
-                ROW_NUMBER() OVER (PARTITION BY consumer_emails.person_match_id ORDER BY
-                    consumer_emails.onboarded DESC
-                    -- consumer_emails.confidence DESC,
-                    -- consumer_emails.id ASC
-                    ) AS row_num
-            FROM consumer_emails
-        ) t
-    WHERE row_num <= 9
-    GROUP BY t.person_match_id
-) t
-;
+-- INSERT INTO temp.athena_personal_emails_raw 
+-- SELECT person_match_id,
+--     SPLIT_PART(grouped_emails, '|', 1) AS p2b_email_1,
+--     SPLIT_PART(grouped_emails, '|', 2) AS p2b_email_2,
+--     SPLIT_PART(grouped_emails, '|', 3) AS p2b_email_3,
+--     SPLIT_PART(grouped_emails, '|', 4) AS p2b_email_4,
+--     SPLIT_PART(grouped_emails, '|', 5) AS p2b_email_5,
+--     SPLIT_PART(grouped_emails, '|', 6) AS p2b_email_6,
+--     SPLIT_PART(grouped_emails, '|', 7) AS p2b_email_7,
+--     SPLIT_PART(grouped_emails, '|', 8) AS p2b_email_8,
+--     SPLIT_PART(grouped_emails, '|', 9) AS p2b_email_9
+-- FROM (
+--     SELECT t.person_match_id,
+--         LISTAGG(t.email, '|') WITHIN GROUP (ORDER BY
+--             t.onboarded DESC
+--             -- t.confidence DESC,
+--             -- t.id ASC
+--             ) || '|||||||||' AS grouped_emails
+--     FROM 
+--         (
+--             SELECT consumer_emails.*,
+--                 ROW_NUMBER() OVER (PARTITION BY consumer_emails.person_match_id ORDER BY
+--                     consumer_emails.onboarded DESC
+--                     -- consumer_emails.confidence DESC,
+--                     -- consumer_emails.id ASC
+--                     ) AS row_num
+--             FROM consumer_emails
+--         ) t
+--     WHERE row_num <= 9
+--     GROUP BY t.person_match_id
+-- ) t
+-- ;
 
-DROP TABLE IF EXISTS temp.athena_personal_emails_md5;
-CREATE TABLE temp.athena_personal_emails_md5 (
-    person_match_id CHAR(32) encode raw distkey sortkey,
-    p2b_email_1_md5 char(32) encode zstd,
-    p2b_email_2_md5 char(32) encode zstd,
-    p2b_email_3_md5 char(32) encode zstd,
-    p2b_email_4_md5 char(32) encode zstd,
-    p2b_email_5_md5 char(32) encode zstd,
-    p2b_email_6_md5 char(32) encode zstd,
-    p2b_email_7_md5 char(32) encode zstd,
-    p2b_email_8_md5 char(32) encode zstd,
-    p2b_email_9_md5 char(32) encode zstd
-)
-;
+-- DROP TABLE IF EXISTS temp.athena_personal_emails_md5;
+-- CREATE TABLE temp.athena_personal_emails_md5 (
+--     person_match_id CHAR(32) encode raw distkey sortkey,
+--     p2b_email_1_md5 char(32) encode zstd,
+--     p2b_email_2_md5 char(32) encode zstd,
+--     p2b_email_3_md5 char(32) encode zstd,
+--     p2b_email_4_md5 char(32) encode zstd,
+--     p2b_email_5_md5 char(32) encode zstd,
+--     p2b_email_6_md5 char(32) encode zstd,
+--     p2b_email_7_md5 char(32) encode zstd,
+--     p2b_email_8_md5 char(32) encode zstd,
+--     p2b_email_9_md5 char(32) encode zstd
+-- )
+-- ;
 
-INSERT INTO temp.athena_personal_emails_md5
-SELECT person_match_id,
-    SPLIT_PART(grouped_emails, '|', 1) AS p2b_email_1_md5,
-    SPLIT_PART(grouped_emails, '|', 2) AS p2b_email_2_md5,
-    SPLIT_PART(grouped_emails, '|', 3) AS p2b_email_3_md5,
-    SPLIT_PART(grouped_emails, '|', 4) AS p2b_email_4_md5,
-    SPLIT_PART(grouped_emails, '|', 5) AS p2b_email_5_md5,
-    SPLIT_PART(grouped_emails, '|', 6) AS p2b_email_6_md5,
-    SPLIT_PART(grouped_emails, '|', 7) AS p2b_email_7_md5,
-    SPLIT_PART(grouped_emails, '|', 8) AS p2b_email_8_md5,
-    SPLIT_PART(grouped_emails, '|', 9) AS p2b_email_9_md5
-FROM (
-    SELECT t.person_match_id,
-        LISTAGG(t.md5, '|') WITHIN GROUP (ORDER BY
-            t.onboarded DESC
-            -- t.confidence DESC,
-            -- t.id ASC
-            ) || '|||||||||' AS grouped_emails
-    FROM 
-        (
-            SELECT consumer_emails.*,
-                ROW_NUMBER() OVER (PARTITION BY consumer_emails.person_match_id ORDER BY
-                    consumer_emails.onboarded DESC
-                    -- consumer_emails.confidence DESC,
-                    -- consumer_emails.id ASC
-                    ) AS row_num
-            FROM consumer_emails
-        ) t
-    WHERE row_num <= 9
-    GROUP BY t.person_match_id
-) t
-;
+-- INSERT INTO temp.athena_personal_emails_md5
+-- SELECT person_match_id,
+--     SPLIT_PART(grouped_emails, '|', 1) AS p2b_email_1_md5,
+--     SPLIT_PART(grouped_emails, '|', 2) AS p2b_email_2_md5,
+--     SPLIT_PART(grouped_emails, '|', 3) AS p2b_email_3_md5,
+--     SPLIT_PART(grouped_emails, '|', 4) AS p2b_email_4_md5,
+--     SPLIT_PART(grouped_emails, '|', 5) AS p2b_email_5_md5,
+--     SPLIT_PART(grouped_emails, '|', 6) AS p2b_email_6_md5,
+--     SPLIT_PART(grouped_emails, '|', 7) AS p2b_email_7_md5,
+--     SPLIT_PART(grouped_emails, '|', 8) AS p2b_email_8_md5,
+--     SPLIT_PART(grouped_emails, '|', 9) AS p2b_email_9_md5
+-- FROM (
+--     SELECT t.person_match_id,
+--         LISTAGG(t.md5, '|') WITHIN GROUP (ORDER BY
+--             t.onboarded DESC
+--             -- t.confidence DESC,
+--             -- t.id ASC
+--             ) || '|||||||||' AS grouped_emails
+--     FROM 
+--         (
+--             SELECT consumer_emails.*,
+--                 ROW_NUMBER() OVER (PARTITION BY consumer_emails.person_match_id ORDER BY
+--                     consumer_emails.onboarded DESC
+--                     -- consumer_emails.confidence DESC,
+--                     -- consumer_emails.id ASC
+--                     ) AS row_num
+--             FROM consumer_emails
+--         ) t
+--     WHERE row_num <= 9
+--     GROUP BY t.person_match_id
+-- ) t
+-- ;
 
-DROP TABLE IF EXISTS temp.athena_emails_onboarding;
-CREATE TABLE temp.athena_emails_onboarding (
-    person_match_id CHAR(32) encode raw distkey sortkey,
-    email_onboarding_1 varchar(1020) encode zstd,
-    email_onboarding_2 varchar(1020) encode zstd,
-    email_onboarding_3 varchar(1020) encode zstd,
-    email_onboarding_4 varchar(1020) encode zstd,
-    email_onboarding_5 varchar(1020) encode zstd,
-    email_onboarding_6 varchar(1020) encode zstd,
-    email_onboarding_7 varchar(1020) encode zstd,
-    email_onboarding_8 varchar(1020) encode zstd,
-    email_onboarding_9 varchar(1020) encode zstd
-)
-;
+-- DROP TABLE IF EXISTS temp.athena_emails_onboarding;
+-- CREATE TABLE temp.athena_emails_onboarding (
+--     person_match_id CHAR(32) encode raw distkey sortkey,
+--     email_onboarding_1 varchar(1020) encode zstd,
+--     email_onboarding_2 varchar(1020) encode zstd,
+--     email_onboarding_3 varchar(1020) encode zstd,
+--     email_onboarding_4 varchar(1020) encode zstd,
+--     email_onboarding_5 varchar(1020) encode zstd,
+--     email_onboarding_6 varchar(1020) encode zstd,
+--     email_onboarding_7 varchar(1020) encode zstd,
+--     email_onboarding_8 varchar(1020) encode zstd,
+--     email_onboarding_9 varchar(1020) encode zstd
+-- )
+-- ;
 
-INSERT INTO temp.athena_emails_onboarding
-WITH CTE_PERSONAL AS (
-    SELECT t.person_match_id,
-        LISTAGG(t.email, '|') WITHIN GROUP (ORDER BY
-            t.onboarded DESC
-            -- t.confidence DESC,
-            -- t.id ASC
-            ) AS grouped_emails
-    FROM 
-        (
-            SELECT consumer_emails.*,
-                ROW_NUMBER() OVER (PARTITION BY consumer_emails.person_match_id ORDER BY
-                    consumer_emails.onboarded DESC
-                    -- consumer_emails.confidence DESC,
-                    -- consumer_emails.id ASC
-                    ) AS row_num
-            FROM consumer_emails
-        ) t
-    WHERE row_num <= 9
-    GROUP BY t.person_match_id
-),
+-- INSERT INTO temp.athena_emails_onboarding
+-- WITH CTE_PERSONAL AS (
+--     SELECT t.person_match_id,
+--         LISTAGG(t.email, '|') WITHIN GROUP (ORDER BY
+--             t.onboarded DESC
+--             -- t.confidence DESC,
+--             -- t.id ASC
+--             ) AS grouped_emails
+--     FROM 
+--         (
+--             SELECT consumer_emails.*,
+--                 ROW_NUMBER() OVER (PARTITION BY consumer_emails.person_match_id ORDER BY
+--                     consumer_emails.onboarded DESC
+--                     -- consumer_emails.confidence DESC,
+--                     -- consumer_emails.id ASC
+--                     ) AS row_num
+--             FROM consumer_emails
+--         ) t
+--     WHERE row_num <= 9
+--     GROUP BY t.person_match_id
+-- ),
 
-CTE_B2B AS (
-    SELECT
-        business_emails.person_match_id,
-        LISTAGG(business_emails.email, '|') WITHIN GROUP (ORDER BY
-            validated_emails.status = 'Ok' DESC,
-            validated_email_domains.most_recent_server_type <> 'responds' AND business_emails.best_guess = 1 DESC,
-            validated_email_domains.most_recent_additional_email_status_info = 'ServerIsCatchAll' DESC,
-            validated_emails.status = 'Bad' ASC,
-            validated_emails.hard_bounce ASC,
-            business_emails.email_rank ASC) AS grouped_emails
-    FROM business_emails
-    LEFT OUTER JOIN validated_emails ON business_emails.md5 = validated_emails.md5
-    LEFT OUTER JOIN validated_email_domains ON business_emails.domain = validated_email_domains.email_domain
-    GROUP BY business_emails.person_match_id
-)
+-- CTE_B2B AS (
+--     SELECT
+--         business_emails.person_match_id,
+--         LISTAGG(business_emails.email, '|') WITHIN GROUP (ORDER BY
+--             validated_emails.status = 'Ok' DESC,
+--             validated_email_domains.most_recent_server_type <> 'responds' AND business_emails.best_guess = 1 DESC,
+--             validated_email_domains.most_recent_additional_email_status_info = 'ServerIsCatchAll' DESC,
+--             validated_emails.status = 'Bad' ASC,
+--             validated_emails.hard_bounce ASC,
+--             business_emails.email_rank ASC) AS grouped_emails
+--     FROM business_emails
+--     LEFT OUTER JOIN validated_emails ON business_emails.md5 = validated_emails.md5
+--     LEFT OUTER JOIN validated_email_domains ON business_emails.domain = validated_email_domains.email_domain
+--     GROUP BY business_emails.person_match_id
+-- )
 
-SELECT match_id,
-    SPLIT_PART(t.grouped_emails, '|', 1) AS email_onboarding_1,
-    SPLIT_PART(t.grouped_emails, '|', 2) AS email_onboarding_2,
-    SPLIT_PART(t.grouped_emails, '|', 3) AS email_onboarding_3,
-    SPLIT_PART(t.grouped_emails, '|', 4) AS email_onboarding_4,
-    SPLIT_PART(t.grouped_emails, '|', 5) AS email_onboarding_5,
-    SPLIT_PART(t.grouped_emails, '|', 6) AS email_onboarding_6,
-    SPLIT_PART(t.grouped_emails, '|', 7) AS email_onboarding_7,
-    SPLIT_PART(t.grouped_emails, '|', 8) AS email_onboarding_8,
-    SPLIT_PART(t.grouped_emails, '|', 9) AS email_onboarding_9
-FROM (
-    SELECT persons.match_id,
-        COALESCE(ctep.grouped_emails || '|', '') || COALESCE(cteb.grouped_emails || '|', '') || '|||||||||' AS grouped_emails
-    FROM persons
-    LEFT OUTER JOIN CTE_PERSONAL ctep ON persons.match_id = ctep.person_match_id
-    LEFT OUTER JOIN CTE_B2B cteb ON persons.match_id = cteb.person_match_id
-    WHERE (ctep.person_match_id IS NOT NULL OR cteb.person_match_id IS NOT NULL)
-) t
-;
+-- SELECT match_id,
+--     SPLIT_PART(t.grouped_emails, '|', 1) AS email_onboarding_1,
+--     SPLIT_PART(t.grouped_emails, '|', 2) AS email_onboarding_2,
+--     SPLIT_PART(t.grouped_emails, '|', 3) AS email_onboarding_3,
+--     SPLIT_PART(t.grouped_emails, '|', 4) AS email_onboarding_4,
+--     SPLIT_PART(t.grouped_emails, '|', 5) AS email_onboarding_5,
+--     SPLIT_PART(t.grouped_emails, '|', 6) AS email_onboarding_6,
+--     SPLIT_PART(t.grouped_emails, '|', 7) AS email_onboarding_7,
+--     SPLIT_PART(t.grouped_emails, '|', 8) AS email_onboarding_8,
+--     SPLIT_PART(t.grouped_emails, '|', 9) AS email_onboarding_9
+-- FROM (
+--     SELECT persons.match_id,
+--         COALESCE(ctep.grouped_emails || '|', '') || COALESCE(cteb.grouped_emails || '|', '') || '|||||||||' AS grouped_emails
+--     FROM persons
+--     LEFT OUTER JOIN CTE_PERSONAL ctep ON persons.match_id = ctep.person_match_id
+--     LEFT OUTER JOIN CTE_B2B cteb ON persons.match_id = cteb.person_match_id
+--     WHERE (ctep.person_match_id IS NOT NULL OR cteb.person_match_id IS NOT NULL)
+-- ) t
+-- ;
 
+DROP TABLE IF EXISTS sandbox.athena_contacts;
 CREATE TABLE sandbox.athena_contacts AS 
 SELECT
     persons.match_id AS person_id,
