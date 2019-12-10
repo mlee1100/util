@@ -2,6 +2,7 @@ import pandas as pd
 import sys
 import os
 import csv
+import gzip
 from pyarrow.parquet import ParquetFile
 
 args = sys.argv[1:]
@@ -13,7 +14,12 @@ else:
     if outfile == infile:
         outfile = outfile + '_1'
 
-with open(infile, 'rb') as ifile:
+if infile.endswith('.gz'):
+    opener = gzip.open
+else:
+    opener = open
+
+with opener(infile, 'rb') as ifile:
     fline = next(ifile)
     if fline.count(b'|') >= 2:
         delimiter = '|'
@@ -23,6 +29,10 @@ with open(infile, 'rb') as ifile:
         delimiter = ','
 
 
-pd.read_csv(infile, quoting=csv.QUOTE_MINIMAL, escapechar='\\', delimiter=delimiter, converters={i: str for i in range(0, 1000)}).to_parquet(outfile)
-print(outfile)
-print(ParquetFile(outfile).schema)
+try:
+    pd.read_csv(infile, converters={i: str for i in range(0, 1000)}).to_parquet(outfile)
+except:
+    print(infile)
+    raise
+# print(outfile)
+# print(ParquetFile(outfile).schema)

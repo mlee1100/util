@@ -15,6 +15,7 @@ sys.setdefaultencoding('utf8')
 argparser = argparse.ArgumentParser()
 argparser.add_argument('-s', '--sample_frequency', required=False, type=int, default=0)
 argparser.add_argument('-j', '--is_json', action='store_true')
+argparser.add_argument('-e', '--empty_values', action='store_true')
 argparser.add_argument('file_paths', nargs='+')
 args = argparser.parse_args()
 
@@ -40,7 +41,7 @@ def get_open_handler(path):
 
 class JsonScheme(object):
 
-    null_set = set([None, '', u''])
+    null_set = set([None,])
 
     def __init__(self):
         self.scheme = dict()
@@ -66,6 +67,18 @@ class JsonScheme(object):
         # elif d is None:
         #     result[path] = None
 
+        elif args.empty_values:
+            if d is None:
+                result[path] = None
+            elif isinstance(d, basestring):
+                result[path] = ''
+            elif isinstance(d, (int, long)):
+                result[path] = 0
+            elif isinstance(d, float):
+                result[path] = 0.0
+            else:
+                raise NotImplementedError(type(d))
+
         elif isinstance(d, basestring):
             result[path] = d.strip()
 
@@ -87,8 +100,8 @@ class JsonScheme(object):
                 else:
                     self.scheme[path] = end_type
         except:
-            print json.dumps(d)
-            print path
+            # print json.dumps(d)
+            # print path
             traceback.print_exc()
             raise
 
@@ -149,10 +162,10 @@ class JsonScheme(object):
                                 self._recursive_set_from_path(consolidated, path[:index+1], [None,])
 
         except:
-            print consolidated
-            print index
-            print path
-            print self.scheme
+            # print consolidated
+            # print index
+            # print path
+            # print self.scheme
             raise
 
         else:

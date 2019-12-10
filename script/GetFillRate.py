@@ -60,6 +60,7 @@ def convert_time(seconds):
 def return_int_list(inlist):
 
   return [(0 if v in null_values else 1) for v in inlist]
+  # return [(1 if '"' in v else 0) for v in inlist]
 
 
 def append_to_set(inset,value):
