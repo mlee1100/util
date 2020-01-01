@@ -91,6 +91,10 @@ alias streamunzip="python "$UTILSCRIPT"/StreamUnzip.py"
 alias remove-hits="python "$UTILSCRIPT"/RemoveGoodHits.py"
 alias re-encode="python "$UTILSCRIPT"/ReEncode.py"
 alias memory-print="python "$UTILSCRIPT"/MemoryPrint.py"
+alias getscheme="python "$UTILSCRIPT"/GetJsonScheme.py"
+alias getjsonfillrate="python "$UTILSCRIPT"/GetJsonFillrate.py"
+alias stream-to-json="python "$UTILSCRIPT"/StreamToJson.py"
+alias csv2parquet="python "$UTILSCRIPT"/Csv2Parquet.py"
 
 # use nano as default editor
 export VISUAL=nano
@@ -172,10 +176,58 @@ find_file() {
 }
 alias find-file=find_file
 
+find_in_s3() {
+	PART=$1
+	for bucket in $(aws s3 ls s3:// | awk '{print $3}')
+	do
+		echo $bucket
+		aws s3 ls --recursive "s3://"$bucket | awk '{print "    "$4}' | grep $PART
+	done
+}
+alias find-in-s3=find_in_s3
+
+s3_unzip() {
+	INPUT=$1
+	OUTPUT=$2
+	ORIGINAL_SIZE=$(aws s3 ls $INPUT | awk '{print $3}')
+	ESTIMATED_SIZE=$(( $ORIGINAL_SIZE * 20 ))
+	aws s3 cp $INPUT - | gzip -d -c | aws s3 cp - $OUTPUT --expected-size=$ESTIMATED_SIZE
+}
+alias s3-unzip=s3_unzip
+
+unzip_to_s3() {
+	INPUT=$1
+	OUTPUT=$2
+	ORIGINAL_SIZE=$(ls -l $INPUT | awk '{print $5}')
+	ESTIMATED_SIZE=$(( $ORIGINAL_SIZE * 20 ))
+	gzip -d -c $INPUT | aws s3 cp - $OUTPUT --expected-size=$ESTIMATED_SIZE
+}
+alias unzip-to-s3=unzip_to_s3
+
+list_s3_paths() {
+	DIR=$1
+	aws s3 ls $@ | awk -v DIR=$DIR '{print DIR$4}'
+}
+alias list-s3-paths=list_s3_paths
+
 reload_profile() {
 	source /home/ec2-user/.bash_profile
 }
 alias reload-profile=reload_profile
+
+activate() {
+    env=$1
+    eval "source ~/.envs/"$env"/bin/activate"
+}
+alias activate=activate
+
+getalias() {
+    a=$1
+    echo $(alias $a | grep -oP '(?<='"'"')[^'"'"']+(?='"'"')')
+}
+alias getalias=getalias
+
+
 
 # ssh pass aliases
 alias server-powerlytics="sshpass -p '"$SERVER_POWERLYTICS_PASSWORD"' ssh -o StrictHostKeyChecking=no "$SERVER_POWERLYTICS_USER"@"$SERVER_POWERLYTICS_HOST
@@ -227,3 +279,8 @@ alias sql-crawler-dev="mysql -u"$SQL_CRAWLER_DEV_USER" -p"$SQL_CRAWLER_DEV_PASSW
 alias sql-reference="mysql -u"$SQL_REFERENCE_USER" -p"$SQL_REFERENCE_PASSWORD" -h"$SQL_REFERENCE_HOST" -A"
 alias sql-b2bemails="mysql -u"$SQL_B2BEMAILS_USER" -p"$SQL_B2BEMAILS_PASSWORD" -h"$SQL_B2BEMAILS_HOST" -A"
 alias sql-consumer="mysql -u"$SQL_CONSUMER_USER" -p"$SQL_CONSUMER_PASSWORD" -h"$SQL_CONSUMER_HOST" -A"
+alias sql-consumer-aurora="mysql -u"$SQL_CONSUMER_AURORA_USER" -p"$SQL_CONSUMER_AURORA_PASSWORD" -h"$SQL_CONSUMER_AURORA_HOST" -A"
+alias sql-staging="mysql -u"$SQL_STAGING_USER" -p"$SQL_STAGING_PASSWORD" -h"$SQL_STAGING_HOST" -A"
+alias sql-oxyleads="mysql -u"$SQL_OXYLEADS_USER" -p"$SQL_OXYLEADS_PASSWORD" -h"$SQL_OXYLEADS_HOST" -A"
+alias redshift="PGPASSWORD="$REDSHIFT_CONTACTS_PASSWORD" psql -h "$REDSHIFT_CONTACTS_HOST" -U "$REDSHIFT_CONTACTS_USER" -d "$REDSHIFT_CONTACTS_DATABASE_DEFAULT" -p 5439"
+alias redshift-processor="PGPASSWORD=nwdPROC123! psql -h "$REDSHIFT_CONTACTS_HOST" -U processor -d "$REDSHIFT_CONTACTS_DATABASE_DEFAULT" -p 5439"
