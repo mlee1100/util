@@ -20,6 +20,7 @@ parser.add_argument('-z','--excludezeros',required=False, type=int, default=1, h
 parser.add_argument('-d','--distinct',required=False, type=int, default=0, help='get distinct counts for each field')
 parser.add_argument('-n','--nullvalues',required=False, type=str, default='', help='which values ot count as not filled')
 parser.add_argument('-s','--stop',required=False, type=int, default=None, help='number of lines to scan')
+parser.add_argument('-r','--header',required=False, nargs="*", default=None, help='header')
 args = parser.parse_args()
 
 start = time.time()
@@ -90,9 +91,13 @@ if __name__ == '__main__':
     ifile = open(args.filepath, 'rU')
     t = tqdm(total=os.path.getsize(args.filepath))
 
-  icsv = csv.reader((line.replace('\0','').replace('\r','') for line in ifile),delimiter=args.delimiter,quoting=args.quoting,escapechar=args.escapechar,doublequote=use_double_quote)
+  rargs = dict(delimiter=args.delimiter,quoting=args.quoting,escapechar=args.escapechar,doublequote=use_double_quote)
+  icsv = csv.reader((line.replace('\0','').replace('\r','') for line in ifile),**rargs)
   # icsv = csv.reader(ifile,delimiter=args.delimiter,quoting=args.quoting,escapechar=args.escapechar,doublequote=use_double_quote)
-  header = icsv.next()
+  if args.header:
+    header = args.header
+  else:
+    header = icsv.next()
 
   count_list = [0 for v in header]
   count_set = [set() for v in header]
