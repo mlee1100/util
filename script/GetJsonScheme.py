@@ -205,5 +205,5 @@ if __name__ == '__main__':
 
     for type_conflict in type_conflicts:
         print type_conflict
-    print json.dumps(scheme.consolidate(), ensure_ascii=False).encode('utf8')
+    print json.dumps(scheme.consolidate(), ensure_ascii=False, indent=4).encode('utf8')
 
