@@ -268,7 +268,8 @@ def fillrate_file(filename):
                     first_bad_json = i+1
             except:
                 raise
-            # break
+            # if i >= 100:
+            #     break
     return (fr.counter, filename, bad_json, first_bad_json)
 
 if __name__ == '__main__':

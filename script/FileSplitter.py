@@ -21,7 +21,9 @@ def get_new_output(openfile=None):
         openfile.close()
     global fileno
     fileno += 1
-    return open(f'{args.output_prefix}{str(fileno).zfill(args.zfill)}{args.output_suffix}', 'wb')
+    # file_path = f'{args.output_prefix}{str(fileno).zfill(args.zfill)}{args.output_suffix}'
+    file_path = '{}{}{}'.format(args.output_prefix, str(fileno).zfill(args.zfill), args.output_suffix)
+    return open(file_path, 'wb')
 
 ofile = get_new_output()
 header = None
