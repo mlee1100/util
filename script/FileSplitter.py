@@ -23,7 +23,7 @@ def get_new_output(openfile=None):
     global fileno
     fileno += 1
     # file_path = f'{args.output_prefix}{str(fileno).zfill(args.zfill)}{args.output_suffix}'
-    file_path = '{}{}{}'.format(args.output_prefix, str(fileno).zfill(args.zfill), args.output_suffix)
+    file_path = '{}{}{}'.format(args.output_prefix.split('.')[0], str(fileno).zfill(args.zfill), args.output_suffix)
     if args.compress:
         return gzip.open(file_path, 'wb')
     else:
