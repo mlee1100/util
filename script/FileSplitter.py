@@ -4,7 +4,7 @@ import os
 
 parser = argparse.ArgumentParser()
 parser.add_argument("files", nargs='*', help="files to split")
-parser.add_argument("-o", "--output_prefix", type=str, help='output prefix')
+parser.add_argument("-o", "--output_prefix", type=str, default=None, help='output prefix')
 parser.add_argument("-s", "--output_suffix", type=str, help='output suffix')
 parser.add_argument("-b", "--byte_limit", type=int, default=None, help='bytes to split at')
 parser.add_argument("-l", "--line_limit", type=int, default=None, help='lines to split at')
@@ -17,13 +17,16 @@ assert args.byte_limit or args.line_limit, 'must choose a byte or line limit'
 
 fileno = 0
 
+if args.output_prefix is None:
+    args.output_prefix = args.files[0].split('.')[0] + '_part'
+
 def get_new_output(openfile=None):
     if openfile:
         openfile.close()
     global fileno
     fileno += 1
     # file_path = f'{args.output_prefix}{str(fileno).zfill(args.zfill)}{args.output_suffix}'
-    file_path = '{}{}{}'.format(args.output_prefix.split('.')[0], str(fileno).zfill(args.zfill), args.output_suffix)
+    file_path = '{}{}{}'.format(args.output_prefix, str(fileno).zfill(args.zfill), args.output_suffix)
     if args.compress:
         return gzip.open(file_path, 'wb')
     else:
