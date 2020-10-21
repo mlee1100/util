@@ -10,6 +10,7 @@ parser.add_argument("-b", "--byte_limit", type=int, default=None, help='bytes to
 parser.add_argument("-l", "--line_limit", type=int, default=None, help='lines to split at')
 parser.add_argument("-z", "--zfill", type=int, default=1, help='enumerator zero fill length')
 parser.add_argument("-r", "--header", action='store_true', help='retain header')
+parser.add_argument("-c", "--compress", action='store_true', help='gzip compress result')
 args = parser.parse_args()
 
 assert args.byte_limit or args.line_limit, 'must choose a byte or line limit'
@@ -23,7 +24,10 @@ def get_new_output(openfile=None):
     fileno += 1
     # file_path = f'{args.output_prefix}{str(fileno).zfill(args.zfill)}{args.output_suffix}'
     file_path = '{}{}{}'.format(args.output_prefix, str(fileno).zfill(args.zfill), args.output_suffix)
-    return open(file_path, 'wb')
+    if args.compress:
+        return gzip.open(file_path, 'wb')
+    else:
+        return open(file_path, 'wb')
 
 ofile = get_new_output()
 header = None
