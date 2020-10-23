@@ -3,6 +3,7 @@ import json
 import collections
 import sys
 import gzip
+import bz2
 import multiprocessing
 import traceback
 import random
@@ -36,6 +37,8 @@ def convert_json_file(open_file):
 def get_open_handler(path):
     if path.endswith('.gz'):
         return gzip.open
+    # elif path.endswith('.bz2'):
+    #     return bz2.open
     else:
         return open
 
@@ -183,6 +186,7 @@ def mp_function(path):
                     scheme.add(json.loads(line))
             except:
                 pass
+                raise
             # if i == 1000:
             #     break
 

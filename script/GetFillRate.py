@@ -99,6 +99,7 @@ if __name__ == '__main__':
   else:
     header = icsv.next()
 
+  previous_line = list(header)
   count_list = [0 for v in header]
   count_set = [set() for v in header]
 

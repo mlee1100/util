@@ -93,8 +93,10 @@ alias re-encode="python "$UTILSCRIPT"/ReEncode.py"
 alias memory-print="python "$UTILSCRIPT"/MemoryPrint.py"
 alias getscheme="python "$UTILSCRIPT"/GetJsonScheme.py"
 alias getjsonfillrate="python "$UTILSCRIPT"/GetJsonFillrate.py"
+alias getjsonscheme="python "$UTILSCRIPT"/GetJsonScheme.py"
 alias stream-to-json="python "$UTILSCRIPT"/StreamToJson.py"
 alias csv2parquet="python "$UTILSCRIPT"/Csv2Parquet.py"
+alias splitfile="python "$UTILSCRIPT"/FileSplitter.py"
 
 # use nano as default editor
 export VISUAL=nano
@@ -282,5 +284,6 @@ alias sql-consumer="mysql -u"$SQL_CONSUMER_USER" -p"$SQL_CONSUMER_PASSWORD" -h"$
 alias sql-consumer-aurora="mysql -u"$SQL_CONSUMER_AURORA_USER" -p"$SQL_CONSUMER_AURORA_PASSWORD" -h"$SQL_CONSUMER_AURORA_HOST" -A"
 alias sql-staging="mysql -u"$SQL_STAGING_USER" -p"$SQL_STAGING_PASSWORD" -h"$SQL_STAGING_HOST" -A"
 alias sql-oxyleads="mysql -u"$SQL_OXYLEADS_USER" -p"$SQL_OXYLEADS_PASSWORD" -h"$SQL_OXYLEADS_HOST" -A"
+alias sql-social-api="mysql -u"$SQL_SOCIAL_API_USER" -p"$SQL_SOCIAL_API_PASSWORD" -h"$SQL_SOCIAL_API_HOST" -A"
 alias redshift="PGPASSWORD="$REDSHIFT_CONTACTS_PASSWORD" psql -h "$REDSHIFT_CONTACTS_HOST" -U "$REDSHIFT_CONTACTS_USER" -d "$REDSHIFT_CONTACTS_DATABASE_DEFAULT" -p 5439"
 alias redshift-processor="PGPASSWORD=nwdPROC123! psql -h "$REDSHIFT_CONTACTS_HOST" -U processor -d "$REDSHIFT_CONTACTS_DATABASE_DEFAULT" -p 5439"
