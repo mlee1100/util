@@ -1,3 +1,4 @@
+from __future__ import print_function
 import csv
 import argparse
 from collections import OrderedDict
@@ -114,7 +115,7 @@ if __name__ == '__main__':
       try:
         count_set = [append_to_set(s,line[i].lower()) for i, s in enumerate(count_set)]
       except:
-        print line
+        print(line)
         issues += 1
         traceback.print_exc()
         # sys.exit(1)
@@ -132,35 +133,33 @@ if __name__ == '__main__':
           count_list = map(add,count_list,return_int_list(line))
           previous_line = line
         except:
-          print previous_line
-          print line
+          print(previous_line)
+          print(line)
           issues += 1
           traceback.print_exc()
-          # raise
+          raise
           # sys.exit(1)
     except:
-      print lines
+      print(lines)
       raise
 
 
   output_values = ([len(s) for s in count_set] if args.distinct else count_list)
   field_dict = [(field,value) for field, value in zip(header,output_values)]
 
-  print '{issues} issues'.format(issues=str(issues))
-  print 'records: {t:,}'.format(
-    t = lines,
-    )
-  print 'COLUMN|FILLED|PERCENT'
+  print('{issues} issues'.format(issues=str(issues)))
+  print('records: {t:,}'.format(t = lines,))
+  print('COLUMN|FILLED|PERCENT')
   for key, value in field_dict:
-    print '{key}|{value:,}|{percent}%'.format(
+    print('{key}|{value:,}|{percent}%'.format(
       key = key,
       value = value,
       percent = round(math.floor((float(value)/float(lines))*1000)/10,1),
       lines = lines,
-      ).replace('.0%','%')
+      ).replace('.0%','%'))
 
 
 
   runtime = int(time.time()-start)
 
-  print convert_time(runtime)
+  print(convert_time(runtime))
